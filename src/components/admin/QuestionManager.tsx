@@ -37,6 +37,14 @@ interface QuestionManagerProps {
   onSelectExam: (exam: Exam | null) => void;
 }
 
+// Section 2 (会話と表現) has 4 options, others have 3
+const getOptionsCountForSection = (sectionNumber: number) => sectionNumber === 2 ? 4 : 3;
+
+const getDefaultOptions = (sectionNumber: number) => {
+  const count = getOptionsCountForSection(sectionNumber);
+  return Array(count).fill('');
+};
+
 const defaultFormData = {
   section_number: 1,
   category: '',
@@ -44,7 +52,7 @@ const defaultFormData = {
   content_text: '',
   image_url: '',
   audio_url: '',
-  options: ['', '', '', ''],
+  options: getDefaultOptions(1),
   correct_answer: '',
 };
 
@@ -186,6 +194,11 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
   const openEdit = (question: Question) => {
     setEditingQuestion(question);
     const opts = Array.isArray(question.options_json) ? question.options_json : [];
+    const optionsCount = getOptionsCountForSection(question.section_number);
+    const paddedOptions = [...opts];
+    while (paddedOptions.length < optionsCount) {
+      paddedOptions.push('');
+    }
     setFormData({
       section_number: question.section_number,
       category: question.category,
@@ -193,7 +206,7 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
       content_text: question.content_text,
       image_url: question.image_url || '',
       audio_url: question.audio_url || '',
-      options: [...opts, '', '', '', ''].slice(0, 4),
+      options: paddedOptions.slice(0, optionsCount),
       correct_answer: question.correct_answer,
     });
     setIsDialogOpen(true);
@@ -329,7 +342,21 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
                 <Label>{t('section')}</Label>
                 <Select
                   value={String(formData.section_number)}
-                  onValueChange={(v) => setFormData({ ...formData, section_number: Number(v) })}
+                  onValueChange={(v) => {
+                    const newSection = Number(v);
+                    const newOptions = getDefaultOptions(newSection);
+                    // Preserve existing options if possible
+                    const preservedOptions = formData.options.slice(0, newOptions.length);
+                    while (preservedOptions.length < newOptions.length) {
+                      preservedOptions.push('');
+                    }
+                    setFormData({ 
+                      ...formData, 
+                      section_number: newSection,
+                      options: preservedOptions,
+                      correct_answer: preservedOptions.includes(formData.correct_answer) ? formData.correct_answer : ''
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
