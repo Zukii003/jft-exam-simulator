@@ -352,24 +352,38 @@ const ExamPage: React.FC = () => {
     );
   }
 
+  // Handle section/question selection from navigation
+  const handleSectionQuestionSelect = (sectionNumber: number, questionIndex: number) => {
+    if (sectionNumber === state.currentSection) {
+      handleQuestionSelect(questionIndex);
+    }
+  };
+
   return (
     <div className="exam-container flex flex-col h-screen">
       <ExamHeader
         sectionNumber={state.currentSection}
+        questionNumber={state.currentQuestionIndex + 1}
+        totalQuestions={sectionQuestions.length}
+        examTitle={exam?.title || 'Exam'}
         userName={userName}
         timeRemaining={state.timeRemaining}
         onTimeUp={handleTimeUp}
+        onFinishSection={() => setShowFinishDialog(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Navigation Panel - Only for non-listening sections */}
-        {!isListeningSection && (
+        {!isListeningSection && exam && (
           <QuestionNavigation
-            questions={sectionQuestions}
-            currentIndex={state.currentQuestionIndex}
+            sections={exam.sections_json}
+            questions={questions}
+            currentSection={state.currentSection}
+            currentQuestionIndex={state.currentQuestionIndex}
             answers={state.answers}
             flaggedQuestions={state.flaggedQuestions}
-            onQuestionSelect={handleQuestionSelect}
+            sectionFinished={state.sectionFinished}
+            onQuestionSelect={handleSectionQuestionSelect}
           />
         )}
 
