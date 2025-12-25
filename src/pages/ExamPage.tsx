@@ -103,11 +103,36 @@ const ExamPage: React.FC = () => {
         .order('question_order');
 
       if (questionsData) {
-        setQuestions(questionsData.map(q => ({
-          ...q,
-          options_json: q.options_json as string[],
-          type: q.type as 'text' | 'image' | 'audio',
-        })));
+        // Process questions and generate signed URLs for assets
+        const processedQuestions = await Promise.all(
+          questionsData.map(async (q) => {
+            let imageUrl = q.image_url;
+            let audioUrl = q.audio_url;
+
+            // Generate signed URLs for assets (valid for 3 hours - covers exam duration)
+            if (imageUrl && !imageUrl.startsWith('http')) {
+              const { data } = await supabase.storage
+                .from('exam-assets')
+                .createSignedUrl(imageUrl, 10800); // 3 hours
+              imageUrl = data?.signedUrl || imageUrl;
+            }
+            if (audioUrl && !audioUrl.startsWith('http')) {
+              const { data } = await supabase.storage
+                .from('exam-assets')
+                .createSignedUrl(audioUrl, 10800); // 3 hours
+              audioUrl = data?.signedUrl || audioUrl;
+            }
+
+            return {
+              ...q,
+              image_url: imageUrl,
+              audio_url: audioUrl,
+              options_json: q.options_json as string[],
+              type: q.type as 'text' | 'image' | 'audio',
+            };
+          })
+        );
+        setQuestions(processedQuestions);
       }
 
       // Check for existing attempt
