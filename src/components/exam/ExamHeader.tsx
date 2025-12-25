@@ -51,7 +51,7 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
             <ExamTimer
               initialSeconds={timeRemaining}
               onTimeUp={onTimeUp}
-              label={t('timeRemaining')}
+              label={t('examTime')}
             />
           </div>
           
@@ -60,7 +60,7 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
             className="bg-background hover:bg-muted border-border"
             onClick={onFinishSection}
           >
-            {t('finishSection')}
+            {sectionNumber === 4 ? t('submitExam') : t('finishSection')}
           </Button>
           
           <LanguageToggle />

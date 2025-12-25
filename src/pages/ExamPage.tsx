@@ -46,7 +46,7 @@ const ExamPage: React.FC = () => {
     sectionFinished: { '1': false, '2': false, '3': false, '4': false },
     sectionTimes: {},
     flaggedQuestions: [],
-    timeRemaining: 30 * 60, // 30 minutes default
+    timeRemaining: 60 * 60, // 60 minutes for entire exam
   });
 
   // Get current section questions
@@ -181,11 +181,8 @@ const ExamPage: React.FC = () => {
         setAttemptId(newAttempt.id);
       }
 
-      // Set initial timer based on first section
-      const section = typedExam.sections_json.find(s => s.number === 1);
-      if (section) {
-        setState(prev => ({ ...prev, timeRemaining: section.duration_minutes * 60 }));
-      }
+      // Set global timer for entire exam (60 minutes)
+      setState(prev => ({ ...prev, timeRemaining: 60 * 60 }));
 
       setLoading(false);
     } catch (error) {
@@ -275,11 +272,11 @@ const ExamPage: React.FC = () => {
     }
   };
 
-  // Handle time up
-  const handleTimeUp = useCallback(() => {
-    toast({ title: 'Time is up!', description: 'Moving to next section...' });
-    finishCurrentSection();
-  }, [state.currentSection]);
+  // Handle time up - submit entire exam when global timer runs out
+  const handleTimeUp = useCallback(async () => {
+    toast({ title: 'Time is up!', description: 'Submitting your exam...' });
+    await calculateAndSubmitScore();
+  }, []);
 
   // Finish current section
   const finishCurrentSection = async () => {
@@ -291,16 +288,15 @@ const ExamPage: React.FC = () => {
       // Last section - complete exam
       await calculateAndSubmitScore();
     } else {
-      // Move to next section
+      // Move to next section (keep same global timer - don't reset it)
       const nextSection = state.currentSection + 1;
-      const section = exam?.sections_json.find(s => s.number === nextSection);
       
       setState(prev => ({
         ...prev,
         sectionFinished: newSectionFinished,
         currentSection: nextSection,
         currentQuestionIndex: 0,
-        timeRemaining: section ? section.duration_minutes * 60 : 30 * 60,
+        // timeRemaining stays the same - global timer continues
       }));
       
       setShowFinishDialog(false);

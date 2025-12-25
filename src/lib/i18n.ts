@@ -36,6 +36,7 @@ export const translations = {
     section: 'Section',
     question: 'Question',
     timeRemaining: 'Time Remaining',
+    examTime: 'Exam Time',
     of: 'of',
     
     // Sections
@@ -128,6 +129,7 @@ export const translations = {
     section: 'Bagian',
     question: 'Soal',
     timeRemaining: 'Waktu Tersisa',
+    examTime: 'Waktu Ujian',
     of: 'dari',
     
     // Sections
