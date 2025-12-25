@@ -69,12 +69,33 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [formData, setFormData] = useState(defaultFormData);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string>('');
 
   useEffect(() => {
     if (selectedExam) {
       fetchQuestions();
     }
   }, [selectedExam]);
+
+  // Generate signed URLs for preview when form data changes
+  useEffect(() => {
+    const loadPreviewUrls = async () => {
+      if (formData.image_url) {
+        const url = await getSignedUrl(formData.image_url);
+        setPreviewImageUrl(url || '');
+      } else {
+        setPreviewImageUrl('');
+      }
+      if (formData.audio_url) {
+        const url = await getSignedUrl(formData.audio_url);
+        setPreviewAudioUrl(url || '');
+      } else {
+        setPreviewAudioUrl('');
+      }
+    };
+    loadPreviewUrls();
+  }, [formData.image_url, formData.audio_url]);
 
   const fetchQuestions = async () => {
     if (!selectedExam) return;
@@ -103,27 +124,34 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
     const fileExt = file.name.split('.').pop();
     const fileName = `${selectedExam.id}/${Date.now()}.${fileExt}`;
 
-    const { data, error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('exam-assets')
       .upload(fileName, file);
 
-    if (error) {
-      toast({ title: t('error'), description: error.message, variant: 'destructive' });
+    if (uploadError) {
+      toast({ title: t('error'), description: uploadError.message, variant: 'destructive' });
       setUploadingFile(false);
       return;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('exam-assets')
-      .getPublicUrl(fileName);
-
+    // Store the file path (not the full URL) so we can generate signed URLs later
+    // The path format is: examId/timestamp.extension
     if (type === 'image') {
-      setFormData({ ...formData, image_url: publicUrl });
+      setFormData({ ...formData, image_url: fileName });
     } else {
-      setFormData({ ...formData, audio_url: publicUrl });
+      setFormData({ ...formData, audio_url: fileName });
     }
     setUploadingFile(false);
     toast({ title: t('success'), description: 'File uploaded successfully' });
+  };
+
+  // Helper to get signed URL for preview in admin
+  const getSignedUrl = async (path: string): Promise<string | null> => {
+    if (!path || path.startsWith('http')) return path; // Already a URL or empty
+    const { data } = await supabase.storage
+      .from('exam-assets')
+      .createSignedUrl(path, 3600); // 1 hour expiration for admin preview
+    return data?.signedUrl || null;
   };
 
   const handleSave = async () => {
@@ -189,6 +217,8 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
     setFormData(defaultFormData);
     setEditingQuestion(null);
     setIsDialogOpen(false);
+    setPreviewImageUrl('');
+    setPreviewAudioUrl('');
   };
 
   const openEdit = (question: Question) => {
@@ -435,8 +465,8 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
                     onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')}
                   />
                 </div>
-                {formData.image_url && (
-                  <img src={formData.image_url} alt="Preview" className="max-h-32 rounded border" />
+                {previewImageUrl && (
+                  <img src={previewImageUrl} alt="Preview" className="max-h-32 rounded border" />
                 )}
               </div>
             )}
@@ -467,8 +497,8 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
                     onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'audio')}
                   />
                 </div>
-                {formData.audio_url && (
-                  <audio src={formData.audio_url} controls className="w-full" />
+                {previewAudioUrl && (
+                  <audio src={previewAudioUrl} controls className="w-full" />
                 )}
               </div>
             )}
