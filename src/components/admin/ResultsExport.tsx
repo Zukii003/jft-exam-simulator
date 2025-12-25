@@ -23,6 +23,20 @@ interface ExportData {
   attempt_date: string;
 }
 
+// Escape CSV values to prevent formula injection attacks
+const escapeCsv = (str: string): string => {
+  // Prevent formula injection - prefix with single quote if starts with dangerous chars
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = "'" + str;
+  }
+  
+  // Escape quotes by doubling them and wrap in quotes if contains special chars
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+};
+
 export const ResultsExport: React.FC<ResultsExportProps> = ({ exams }) => {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -81,13 +95,13 @@ export const ResultsExport: React.FC<ResultsExportProps> = ({ exams }) => {
         };
       });
 
-      // Generate CSV
+      // Generate CSV with formula injection protection
       const headers = ['Name', 'Email', 'Section 1 (%)', 'Section 2 (%)', 'Section 3 (%)', 'Section 4 (%)', 'Total Score (0-250)', 'Date'];
       const csvContent = [
         headers.join(','),
         ...exportData.map(row => [
-          `"${row.name}"`,
-          `"${row.email}"`,
+          escapeCsv(row.name),
+          escapeCsv(row.email),
           row.section_1,
           row.section_2,
           row.section_3,
