@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [attempts, setAttempts] = useState<Record<string, boolean>>({});
+  const [assignments, setAssignments] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) {
@@ -36,6 +37,17 @@ const Dashboard: React.FC = () => {
     }
 
     if (user) {
+      // Fetch user's exam assignments
+      const { data: assignmentData } = await supabase
+        .from('exam_assignments')
+        .select('exam_id')
+        .eq('user_id', user.id);
+      
+      if (assignmentData) {
+        setAssignments(assignmentData.map(a => a.exam_id));
+      }
+
+      // Fetch user's attempts
       const { data: attemptData } = await supabase
         .from('exam_attempts')
         .select('exam_id, submitted_at')
@@ -92,24 +104,35 @@ const Dashboard: React.FC = () => {
           <p className="text-muted-foreground">{t('noExams')}</p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {exams.map((exam) => (
-              <Card key={exam.id}>
-                <CardHeader>
-                  <CardTitle>{exam.title}</CardTitle>
-                  <CardDescription>{exam.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    onClick={() => handleStartExam(exam.id)}
-                    disabled={attempts[exam.id]}
-                    className="w-full gap-2"
-                  >
-                    <Play className="h-4 w-4" />
-                    {attempts[exam.id] ? t('alreadyAttempted') : t('startExam')}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {exams.map((exam) => {
+              const isAssigned = isAdmin || assignments.includes(exam.id);
+              const hasAttempted = attempts[exam.id];
+              
+              return (
+                <Card key={exam.id} className={!isAssigned ? 'opacity-60' : ''}>
+                  <CardHeader>
+                    <CardTitle>{exam.title}</CardTitle>
+                    <CardDescription>{exam.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {!isAssigned ? (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        Not assigned by admin
+                      </p>
+                    ) : (
+                      <Button
+                        onClick={() => handleStartExam(exam.id)}
+                        disabled={hasAttempted}
+                        className="w-full gap-2"
+                      >
+                        <Play className="h-4 w-4" />
+                        {hasAttempted ? t('alreadyAttempted') : t('startExam')}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>

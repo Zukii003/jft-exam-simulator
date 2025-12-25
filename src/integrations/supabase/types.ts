@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      exam_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          exam_id: string
+          expires_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          exam_id: string
+          expires_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          exam_id?: string
+          expires_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_assignments_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_attempts: {
         Row: {
           answers_json: Json
