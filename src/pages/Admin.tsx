@@ -4,13 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ExamManager } from '@/components/admin/ExamManager';
 import { QuestionManager } from '@/components/admin/QuestionManager';
 import { ResultsExport } from '@/components/admin/ResultsExport';
-import { BookOpen, LogOut, ArrowLeft, FileText, HelpCircle, Download } from 'lucide-react';
+import { UserManager } from '@/components/admin/UserManager';
+import { BookOpen, LogOut, ArrowLeft, FileText, HelpCircle, Download, Users } from 'lucide-react';
 import { Exam } from '@/types/exam';
 
 const Admin: React.FC = () => {
@@ -77,8 +77,12 @@ const Admin: React.FC = () => {
       </header>
 
       <main className="container py-8">
-        <Tabs defaultValue="exams" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
             <TabsTrigger value="exams" className="gap-2">
               <FileText className="h-4 w-4" />
               {t('exams')}
@@ -92,6 +96,10 @@ const Admin: React.FC = () => {
               {t('results')}
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="users" className="fade-in">
+            <UserManager exams={exams} />
+          </TabsContent>
 
           <TabsContent value="exams" className="fade-in">
             <ExamManager
