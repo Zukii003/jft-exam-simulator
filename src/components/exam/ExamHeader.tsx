@@ -13,7 +13,6 @@ interface ExamHeaderProps {
   examTitle: string;
   userName: string;
   timeRemaining: number;
-  onTimeUp: () => void;
   onFinishSection: () => void;
 }
 
@@ -25,7 +24,6 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
   examTitle,
   userName,
   timeRemaining,
-  onTimeUp,
   onFinishSection,
 }) => {
   const { language, t } = useLanguage();
@@ -49,8 +47,7 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <ExamTimer
-              initialSeconds={timeRemaining}
-              onTimeUp={onTimeUp}
+              seconds={timeRemaining}
               label={t('examTime')}
             />
           </div>

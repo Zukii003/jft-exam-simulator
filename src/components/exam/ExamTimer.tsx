@@ -1,47 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ExamTimerProps {
-  initialSeconds: number;
-  onTimeUp: () => void;
-  isPaused?: boolean;
+  seconds: number;
   label?: string;
 }
 
 export const ExamTimer: React.FC<ExamTimerProps> = ({
-  initialSeconds,
-  onTimeUp,
-  isPaused = false,
+  seconds,
   label,
 }) => {
-  const [seconds, setSeconds] = useState(initialSeconds);
-
-  useEffect(() => {
-    setSeconds(initialSeconds);
-  }, [initialSeconds]);
-
-  useEffect(() => {
-    if (isPaused || seconds <= 0) return;
-
-    const interval = setInterval(() => {
-      setSeconds((prev) => {
-        if (prev <= 1) {
-          onTimeUp();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPaused, seconds, onTimeUp]);
-
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = seconds % 60;
-  const isWarning = seconds < 60;
-  const isCritical = seconds < 30;
+  const isWarning = seconds < 300; // 5 minutes warning
+  const isCritical = seconds < 60; // 1 minute critical
 
   const formatTime = () => {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
@@ -57,7 +31,7 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
         <span
           className={cn(
             'font-mono text-base font-semibold tabular-nums',
-            isWarning && !isCritical && 'text-warning',
+            isWarning && !isCritical && 'text-yellow-600',
             isCritical && 'text-destructive animate-pulse'
           )}
         >
