@@ -215,6 +215,25 @@ const ExamPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [saveProgress]);
 
+  // Global exam timer - countdown every second
+  useEffect(() => {
+    if (loading || isComplete) return;
+
+    const interval = setInterval(() => {
+      setState(prev => {
+        const newTime = prev.timeRemaining - 1;
+        if (newTime <= 0) {
+          // Time's up - submit exam
+          calculateAndSubmitScore();
+          return { ...prev, timeRemaining: 0 };
+        }
+        return { ...prev, timeRemaining: newTime };
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [loading, isComplete]);
+
   // Handle answer selection
   const handleAnswerSelect = (answer: string) => {
     if (!currentQuestion) return;
@@ -272,11 +291,6 @@ const ExamPage: React.FC = () => {
     }
   };
 
-  // Handle time up - submit entire exam when global timer runs out
-  const handleTimeUp = useCallback(async () => {
-    toast({ title: 'Time is up!', description: 'Submitting your exam...' });
-    await calculateAndSubmitScore();
-  }, []);
 
   // Finish current section
   const finishCurrentSection = async () => {
@@ -389,7 +403,6 @@ const ExamPage: React.FC = () => {
         examTitle={exam?.title || 'Exam'}
         userName={userName}
         timeRemaining={state.timeRemaining}
-        onTimeUp={handleTimeUp}
         onFinishSection={() => setShowFinishDialog(true)}
       />
 
