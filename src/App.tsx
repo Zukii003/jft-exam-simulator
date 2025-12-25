@@ -13,9 +13,10 @@ import Admin from "./pages/Admin";
 import ExamPage from "./pages/ExamPage";
 import NotFound from "./pages/NotFound";
 
+// Initialize query client with default options
 const queryClient = new QueryClient();
 
-const App = () => (
+const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
