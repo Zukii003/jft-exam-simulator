@@ -39,23 +39,27 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         </span>
       </div>
 
-      <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
-        <p className="text-lg font-medium leading-relaxed font-jp">
+      <div className="bg-card rounded-xl p-4 sm:p-6 border border-border shadow-sm">
+        {/* Text content - smaller when there's an image */}
+        <p className={cn(
+          "font-medium leading-relaxed font-jp",
+          question.type === 'image' ? "text-sm sm:text-base" : "text-base sm:text-lg"
+        )}>
           {question.content_text}
         </p>
 
         {question.type === 'image' && question.image_url && (
-          <div className="mt-4">
+          <div className="mt-3 sm:mt-4">
             <img
               src={question.image_url}
               alt="Question"
-              className="max-w-full h-auto rounded-lg border border-border"
+              className="max-w-full h-auto rounded-lg border border-border max-h-[50vh] object-contain mx-auto"
             />
           </div>
         )}
 
         {question.type === 'audio' && question.audio_url && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <AudioPlayer
               audioUrl={question.audio_url}
               playCount={audioPlayCount}

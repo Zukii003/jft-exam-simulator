@@ -32,48 +32,51 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
   return (
     <header className="flex flex-col">
       {/* Top Row - Question info and timer */}
-      <div className="bg-[hsl(50,40%,85%)] text-foreground py-2 px-4 flex items-center justify-between border-b border-border">
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">
-              {t('question')}: {questionNumber}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {t('section')}: {displaySectionTitle}
-            </span>
-          </div>
+      <div className="bg-[hsl(50,40%,85%)] text-foreground py-1.5 px-2 sm:py-2 sm:px-4 flex items-center justify-between border-b border-border gap-2">
+        {/* Question & Section - Compact on mobile */}
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+          <span className="text-xs sm:text-sm font-medium whitespace-nowrap">
+            Q{questionNumber}
+          </span>
+          <span className="hidden sm:inline text-xs text-muted-foreground truncate max-w-[120px]">
+            {displaySectionTitle}
+          </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <ExamTimer
-              seconds={timeRemaining}
-              label={t('examTime')}
-            />
-          </div>
+        {/* Timer & Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <ExamTimer
+            seconds={timeRemaining}
+            label={t('examTime')}
+            compact
+          />
           
           <Button
             variant="outline"
-            className="bg-background hover:bg-muted border-border"
+            size="sm"
+            className="bg-background hover:bg-muted border-border text-xs px-2 sm:px-3 h-7 sm:h-8"
             onClick={onFinishSection}
           >
-            {sectionNumber === 4 ? t('submitExam') : t('finishSection')}
+            <span className="hidden sm:inline">{sectionNumber === 4 ? t('submitExam') : t('finishSection')}</span>
+            <span className="sm:hidden">Finish</span>
           </Button>
           
-          <LanguageToggle />
+          <div className="hidden sm:block">
+            <LanguageToggle />
+          </div>
         </div>
       </div>
 
-      {/* Bottom Row - Test and Candidate info */}
-      <div className="bg-[hsl(var(--exam-header))] text-[hsl(var(--exam-header-foreground))] py-2 px-4 flex items-center justify-between">
-        <span className="text-sm font-medium">
-          Test: {examTitle}
+      {/* Bottom Row - Test and Candidate info - More compact on mobile */}
+      <div className="bg-[hsl(var(--exam-header))] text-[hsl(var(--exam-header-foreground))] py-1 px-2 sm:py-2 sm:px-4 flex items-center justify-between text-[10px] sm:text-sm gap-1">
+        <span className="font-medium truncate max-w-[80px] sm:max-w-none">
+          {examTitle}
         </span>
-        <span className="text-sm text-white/90">
-          Powered by <span className="font-medium">Megono Pekalongan</span>
+        <span className="text-white/90 whitespace-nowrap">
+          <span className="hidden sm:inline">Powered by </span><span className="font-medium">Megono</span>
         </span>
-        <span className="text-sm">
-          Candidate: {userName}
+        <span className="truncate max-w-[80px] sm:max-w-none">
+          {userName}
         </span>
       </div>
     </header>
