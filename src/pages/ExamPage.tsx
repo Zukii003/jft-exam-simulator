@@ -94,9 +94,9 @@ const ExamPage: React.FC = () => {
       };
       setExam(typedExam);
 
-      // Fetch questions
+      // Fetch questions from secure view (hides correct_answer from non-admins)
       const { data: questionsData } = await supabase
-        .from('questions')
+        .from('questions_public')
         .select('*')
         .eq('exam_id', examId)
         .order('section_number')
@@ -318,36 +318,38 @@ const ExamPage: React.FC = () => {
     }
   };
 
-  // Calculate and submit score
+  // Submit exam score using secure server-side function
   const calculateAndSubmitScore = async () => {
     if (!attemptId) return;
 
-    const sectionScores: Record<string, number> = {};
-    let totalCorrect = 0;
-    let totalQuestions = 0;
+    try {
+      // Save final answers before submitting
+      await saveProgress();
 
-    [1, 2, 3, 4].forEach(section => {
-      const sectionQs = questions.filter(q => q.section_number === section);
-      const correct = sectionQs.filter(q => state.answers[q.id] === q.correct_answer).length;
-      
-      sectionScores[section] = sectionQs.length > 0 ? (correct / sectionQs.length) * 100 : 0;
-      totalCorrect += correct;
-      totalQuestions += sectionQs.length;
-    });
+      // Call server-side function to calculate and submit score securely
+      const { data, error } = await supabase.rpc('submit_exam_score', {
+        p_attempt_id: attemptId
+      });
 
-    const totalScore250 = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 250 : 0;
+      if (error) {
+        console.error('Error submitting exam:', error);
+        toast({ 
+          title: t('error'), 
+          description: 'Failed to submit exam. Please try again.', 
+          variant: 'destructive' 
+        });
+        return;
+      }
 
-    await supabase
-      .from('exam_attempts')
-      .update({
-        section_finished_json: { '1': true, '2': true, '3': true, '4': true },
-        score_section_json: sectionScores,
-        total_score_250: totalScore250,
-        submitted_at: new Date().toISOString(),
-      })
-      .eq('id', attemptId);
-
-    setIsComplete(true);
+      setIsComplete(true);
+    } catch (error) {
+      console.error('Error submitting exam:', error);
+      toast({ 
+        title: t('error'), 
+        description: 'Failed to submit exam. Please try again.', 
+        variant: 'destructive' 
+      });
+    }
   };
 
   // Handle section transition continue

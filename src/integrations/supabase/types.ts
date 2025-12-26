@@ -235,7 +235,62 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      questions_public: {
+        Row: {
+          audio_url: string | null
+          category: string | null
+          content_text: string | null
+          correct_answer: string | null
+          created_at: string | null
+          exam_id: string | null
+          explanation: string | null
+          id: string | null
+          image_url: string | null
+          options_json: Json | null
+          question_order: number | null
+          section_number: number | null
+          type: Database["public"]["Enums"]["question_type"] | null
+        }
+        Insert: {
+          audio_url?: string | null
+          category?: string | null
+          content_text?: string | null
+          correct_answer?: never
+          created_at?: string | null
+          exam_id?: string | null
+          explanation?: string | null
+          id?: string | null
+          image_url?: string | null
+          options_json?: Json | null
+          question_order?: number | null
+          section_number?: number | null
+          type?: Database["public"]["Enums"]["question_type"] | null
+        }
+        Update: {
+          audio_url?: string | null
+          category?: string | null
+          content_text?: string | null
+          correct_answer?: never
+          created_at?: string | null
+          exam_id?: string | null
+          explanation?: string | null
+          id?: string | null
+          image_url?: string | null
+          options_json?: Json | null
+          question_order?: number | null
+          section_number?: number | null
+          type?: Database["public"]["Enums"]["question_type"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
@@ -245,6 +300,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      submit_exam_score: { Args: { p_attempt_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
