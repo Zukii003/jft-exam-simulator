@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -29,6 +29,12 @@ const ExamPage: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const EXAM_DURATION_SECONDS = 60 * 60; // 60 minutes for entire exam
+
+  const startedAtMsRef = useRef<number | null>(null);
+  const submitTriggeredRef = useRef(false);
+  const saveProgressRef = useRef<(() => Promise<void>) | null>(null);
+
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +52,7 @@ const ExamPage: React.FC = () => {
     sectionFinished: { '1': false, '2': false, '3': false, '4': false },
     sectionTimes: {},
     flaggedQuestions: [],
-    timeRemaining: 60 * 60, // 60 minutes for entire exam
+    timeRemaining: EXAM_DURATION_SECONDS,
   });
 
   // Get current section questions
@@ -152,14 +158,35 @@ const ExamPage: React.FC = () => {
 
         // Resume attempt
         setAttemptId(existingAttempt.id);
+
+        // Keep exam time running across tab changes/reloads by deriving from started_at
+        startedAtMsRef.current = new Date(existingAttempt.started_at).getTime();
+        const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
+        const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
+
+        // Restore answers/progress
+        const restoredAnswers = existingAttempt.answers_json as Record<string, string>;
+        const restoredSection = existingAttempt.current_section;
+        const restoredSectionQuestions = (questionsData || [])
+          .filter((q: any) => q.section_number === restoredSection)
+          .sort((a: any, b: any) => (a.question_order ?? 0) - (b.question_order ?? 0));
+
+        // Best-effort: restore the current question index to the first unanswered in the current section
+        const firstUnansweredIdx = restoredSectionQuestions.findIndex(
+          (q: any) => !restoredAnswers?.[q.id]
+        );
+        const restoredIndex = firstUnansweredIdx === -1 ? 0 : firstUnansweredIdx;
+
         setState(prev => ({
           ...prev,
-          currentSection: existingAttempt.current_section,
-          answers: existingAttempt.answers_json as Record<string, string>,
+          currentSection: restoredSection,
+          currentQuestionIndex: restoredIndex,
+          answers: restoredAnswers,
           audioPlayCount: existingAttempt.audio_play_json as Record<string, number>,
           sectionFinished: existingAttempt.section_finished_json as Record<string, boolean>,
           sectionTimes: existingAttempt.section_times_json as Record<string, number>,
           flaggedQuestions: existingAttempt.flagged_questions_json as string[],
+          timeRemaining: derivedTimeRemaining,
         }));
       } else {
         // Create new attempt
@@ -179,10 +206,11 @@ const ExamPage: React.FC = () => {
         }
 
         setAttemptId(newAttempt.id);
-      }
+        startedAtMsRef.current = new Date(newAttempt.started_at).getTime();
 
-      // Set global timer for entire exam (60 minutes)
-      setState(prev => ({ ...prev, timeRemaining: 60 * 60 }));
+        // New attempt starts with full duration
+        setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
+      }
 
       setLoading(false);
     } catch (error) {
@@ -209,30 +237,59 @@ const ExamPage: React.FC = () => {
       .eq('id', attemptId);
   }, [attemptId, state]);
 
+  // Keep a ref to the latest saveProgress for lifecycle events
+  useEffect(() => {
+    saveProgressRef.current = saveProgress;
+  }, [saveProgress]);
+
   // Auto-save every 10 seconds
   useEffect(() => {
     const interval = setInterval(saveProgress, 10000);
     return () => clearInterval(interval);
   }, [saveProgress]);
 
-  // Global exam timer - countdown every second
+  // Save progress when user switches tab / reloads / closes
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        saveProgressRef.current?.();
+      }
+    };
+
+    const handlePageHide = () => {
+      saveProgressRef.current?.();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, []);
+
+  // Global exam timer - derive timeRemaining from started_at so it keeps running across tab changes/reloads
   useEffect(() => {
     if (loading || isComplete) return;
 
+    // If startedAt isn't set yet, don't start the timer
+    if (!startedAtMsRef.current) return;
+
     const interval = setInterval(() => {
-      setState(prev => {
-        const newTime = prev.timeRemaining - 1;
-        if (newTime <= 0) {
-          // Time's up - submit exam
-          calculateAndSubmitScore();
-          return { ...prev, timeRemaining: 0 };
-        }
-        return { ...prev, timeRemaining: newTime };
-      });
+      const elapsedSeconds = Math.floor((Date.now() - (startedAtMsRef.current || Date.now())) / 1000);
+      const newTime = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
+
+      setState(prev => (prev.timeRemaining === newTime ? prev : { ...prev, timeRemaining: newTime }));
+
+      if (newTime <= 0 && !submitTriggeredRef.current) {
+        submitTriggeredRef.current = true;
+        calculateAndSubmitScore();
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [loading, isComplete]);
+  }, [loading, isComplete, EXAM_DURATION_SECONDS]);
 
   // Handle answer selection
   const handleAnswerSelect = (answer: string) => {
