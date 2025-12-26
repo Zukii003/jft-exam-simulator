@@ -78,12 +78,30 @@ export const QuestionNavigation: React.FC<QuestionNavigationProps> = ({
     return names[sectionNumber] || `S${sectionNumber}`;
   };
 
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+
+  // Auto-collapse on mobile
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsCollapsed(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
-    <div className="exam-sidebar w-56 lg:w-64 flex flex-col h-full overflow-y-auto">
-      {/* Test header */}
-      <div className="bg-[hsl(var(--exam-header))] text-[hsl(var(--exam-header-foreground))] px-3 py-2 text-xs font-medium truncate">
-        Test: JFT Basic
-      </div>
+    <div className={cn(
+      "exam-sidebar flex flex-col h-full overflow-y-auto transition-all duration-300 border-r border-border",
+      isCollapsed ? "w-14" : "w-44 lg:w-56"
+    )}>
+      {/* Toggle button for mobile */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="md:hidden flex items-center justify-center py-2 bg-[hsl(var(--exam-header))] text-[hsl(var(--exam-header-foreground))]"
+      >
+        {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+      </button>
 
       {/* Sections */}
       <div className="flex-1 overflow-y-auto">
@@ -101,28 +119,31 @@ export const QuestionNavigation: React.FC<QuestionNavigationProps> = ({
                 onClick={() => !isLocked && toggleSection(section.number)}
                 disabled={isLocked}
                 className={cn(
-                  'w-full flex items-center justify-between px-3 py-2 text-left transition-colors',
+                  'w-full flex items-center justify-between px-2 py-1.5 text-left transition-colors',
                   isActive && 'bg-[hsl(90,50%,85%)] text-foreground font-medium',
                   isCompleted && !isActive && 'bg-muted text-muted-foreground',
                   isLocked && !isCompleted && 'bg-background text-muted-foreground cursor-not-allowed',
                   !isActive && !isCompleted && !isLocked && 'bg-background hover:bg-muted'
                 )}
               >
-                <span className="text-sm truncate">
-                  {getSectionShortName(section.number)}
+                <span className={cn("text-xs truncate", isCollapsed && "text-center w-full")}>
+                  {isCollapsed ? `S${section.number}` : getSectionShortName(section.number)}
                 </span>
-                {!isLocked && (
+                {!isLocked && !isCollapsed && (
                   isExpanded ? (
-                    <ChevronUp className="h-4 w-4 flex-shrink-0" />
+                    <ChevronUp className="h-3 w-3 flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                    <ChevronDown className="h-3 w-3 flex-shrink-0" />
                   )
                 )}
               </button>
 
-              {/* Question Numbers */}
+              {/* Question Numbers - Grid layout for compact view */}
               {isExpanded && !isLocked && (
-                <div className="flex flex-col gap-1 p-2 bg-background">
+                <div className={cn(
+                  "grid gap-1 p-1.5 bg-background",
+                  isCollapsed ? "grid-cols-1" : "grid-cols-4 sm:grid-cols-5 lg:grid-cols-4"
+                )}>
                   {sectionQuestions.map((question, index) => {
                     const { isActive, isAnswered, isFlagged } = getQuestionStatus(
                       question,
@@ -135,9 +156,9 @@ export const QuestionNavigation: React.FC<QuestionNavigationProps> = ({
                         key={question.id}
                         onClick={() => onQuestionSelect(section.number, index)}
                         className={cn(
-                          'flex items-center justify-center px-3 py-1.5 rounded text-sm transition-all relative',
-                          // Arrow/flag shape for active
-                          isActive && 'bg-[hsl(90,50%,40%)] text-white font-medium question-arrow',
+                          'flex items-center justify-center w-7 h-7 rounded text-xs transition-all',
+                          // Active - green
+                          isActive && 'bg-[hsl(90,50%,40%)] text-white font-medium',
                           // Answered - light green
                           !isActive && isAnswered && !isFlagged && 'bg-[hsl(90,40%,90%)] text-foreground',
                           // Flagged - amber
@@ -157,25 +178,27 @@ export const QuestionNavigation: React.FC<QuestionNavigationProps> = ({
         })}
       </div>
 
-      {/* Legend */}
-      <div className="p-3 border-t border-border space-y-1.5 text-xs bg-background">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-[hsl(90,50%,40%)]" />
-          <span className="text-muted-foreground">Current</span>
+      {/* Compact Legend - only show when not collapsed */}
+      {!isCollapsed && (
+        <div className="p-2 border-t border-border grid grid-cols-2 gap-1 text-[10px] bg-background">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-[hsl(90,50%,40%)]" />
+            <span className="text-muted-foreground">Now</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-[hsl(90,40%,90%)]" />
+            <span className="text-muted-foreground">Done</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-[hsl(var(--exam-question-flagged))]" />
+            <span className="text-muted-foreground">Flag</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-muted border border-border" />
+            <span className="text-muted-foreground">Empty</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-[hsl(90,40%,90%)]" />
-          <span className="text-muted-foreground">Answered</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-[hsl(var(--exam-question-flagged))]" />
-          <span className="text-muted-foreground">Flagged</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-muted border border-border" />
-          <span className="text-muted-foreground">Not answered</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
