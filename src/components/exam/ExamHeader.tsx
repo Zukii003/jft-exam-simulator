@@ -69,6 +69,9 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
         <span className="text-sm font-medium">
           Test: {examTitle}
         </span>
+        <span className="text-sm text-white/90">
+          Powered by <span className="font-medium">Megono Pekalongan</span>
+        </span>
         <span className="text-sm">
           Candidate: {userName}
         </span>
