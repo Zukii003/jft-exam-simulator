@@ -5,11 +5,13 @@ import { cn } from '@/lib/utils';
 interface ExamTimerProps {
   seconds: number;
   label?: string;
+  compact?: boolean;
 }
 
 export const ExamTimer: React.FC<ExamTimerProps> = ({
   seconds,
   label,
+  compact = false,
 }) => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -22,15 +24,16 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <Clock className={cn('h-4 w-4', isCritical && 'text-destructive')} />
+    <div className={cn("flex items-center", compact ? "gap-1" : "gap-2")}>
+      <Clock className={cn(compact ? 'h-3 w-3' : 'h-4 w-4', isCritical && 'text-destructive')} />
       <div className="flex flex-col items-center">
-        {label && (
+        {label && !compact && (
           <span className="text-xs text-muted-foreground">{label}</span>
         )}
         <span
           className={cn(
-            'font-mono text-base font-semibold tabular-nums',
+            'font-mono font-semibold tabular-nums',
+            compact ? 'text-xs sm:text-sm' : 'text-base',
             isWarning && !isCritical && 'text-yellow-600',
             isCritical && 'text-destructive animate-pulse'
           )}
