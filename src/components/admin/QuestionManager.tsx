@@ -120,6 +120,34 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({
   const handleFileUpload = async (file: File, type: 'image' | 'audio') => {
     if (!selectedExam) return;
     
+    // File size limits
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB
+    
+    // Allowed MIME types
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/x-wav'];
+    
+    // Validate file size
+    if (type === 'image' && file.size > MAX_IMAGE_SIZE) {
+      toast({ title: t('error'), description: 'Image must be under 10MB', variant: 'destructive' });
+      return;
+    }
+    if (type === 'audio' && file.size > MAX_AUDIO_SIZE) {
+      toast({ title: t('error'), description: 'Audio must be under 50MB', variant: 'destructive' });
+      return;
+    }
+    
+    // Validate MIME type
+    if (type === 'image' && !ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast({ title: t('error'), description: 'Invalid image format. Allowed: JPEG, PNG, GIF, WebP', variant: 'destructive' });
+      return;
+    }
+    if (type === 'audio' && !ALLOWED_AUDIO_TYPES.includes(file.type)) {
+      toast({ title: t('error'), description: 'Invalid audio format. Allowed: MP3, WAV, OGG', variant: 'destructive' });
+      return;
+    }
+    
     setUploadingFile(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `${selectedExam.id}/${Date.now()}.${fileExt}`;
