@@ -39,36 +39,40 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         </span>
       </div>
 
-      <div className="bg-card rounded-xl p-4 sm:p-6 border border-border shadow-sm">
-        {/* Text content - smaller when there's an image */}
-        <p className={cn(
-          "font-medium leading-relaxed font-jp",
-          question.type === 'image' ? "text-sm sm:text-base" : "text-base sm:text-lg"
-        )}>
-          {question.content_text}
-        </p>
+      {/* Instruction text - always smaller */}
+      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+        {question.content_text}
+      </p>
 
-        {question.type === 'image' && question.image_url && (
-          <div className="mt-3 sm:mt-4">
-            <img
-              src={question.image_url}
-              alt="Question"
-              className="max-w-full h-auto rounded-lg border border-border max-h-[50vh] object-contain mx-auto"
-            />
-          </div>
-        )}
+      {/* Question content box with Japanese text - larger and prominent */}
+      {question.type === 'image' && question.image_url && (
+        <div className="bg-card rounded-xl p-3 sm:p-4 border border-border shadow-sm">
+          <img
+            src={question.image_url}
+            alt="Question"
+            className="w-full h-auto rounded-lg max-h-[60vh] object-contain"
+          />
+        </div>
+      )}
 
-        {question.type === 'audio' && question.audio_url && (
-          <div className="mt-4 sm:mt-6">
-            <AudioPlayer
-              audioUrl={question.audio_url}
-              playCount={audioPlayCount}
-              maxPlays={2}
-              onPlay={onAudioPlay}
-            />
-          </div>
-        )}
-      </div>
+      {question.type === 'text' && (
+        <div className="bg-[hsl(200,60%,95%)] rounded-xl p-4 sm:p-5 border border-[hsl(200,40%,85%)]">
+          <p className="text-base sm:text-lg font-medium leading-relaxed font-jp text-foreground">
+            {question.content_text}
+          </p>
+        </div>
+      )}
+
+      {question.type === 'audio' && question.audio_url && (
+        <div className="bg-card rounded-xl p-4 sm:p-6 border border-border shadow-sm">
+          <AudioPlayer
+            audioUrl={question.audio_url}
+            playCount={audioPlayCount}
+            maxPlays={2}
+            onPlay={onAudioPlay}
+          />
+        </div>
+      )}
 
       <div className="space-y-3">
         {options.map((option, index) => {
