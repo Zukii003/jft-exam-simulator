@@ -10,6 +10,7 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { useToast } from '@/hooks/use-toast';
 import { BookOpen } from 'lucide-react';
 import { z } from 'zod';
+import PoweredByFooter from '@/components/PoweredByFooter';
 
 // Input validation schemas
 const emailSchema = z.string().trim().email({ message: 'Invalid email address' }).max(255);
@@ -133,7 +134,7 @@ const Auth: React.FC = () => {
   const isLockedOut = lockoutUntil && new Date() < lockoutUntil;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="absolute top-4 right-4">
         <LanguageToggle />
       </div>
@@ -204,6 +205,8 @@ const Auth: React.FC = () => {
           </p>
         </CardContent>
       </Card>
+
+      <PoweredByFooter />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import { ResultsExport } from '@/components/admin/ResultsExport';
 import { UserManager } from '@/components/admin/UserManager';
 import { BookOpen, LogOut, ArrowLeft, FileText, HelpCircle, Download, Users } from 'lucide-react';
 import { Exam } from '@/types/exam';
+import PoweredByFooter from '@/components/PoweredByFooter';
 
 const Admin: React.FC = () => {
   const { user, signOut, isAdmin, loading } = useAuth();
@@ -57,7 +58,7 @@ const Admin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
@@ -76,7 +77,7 @@ const Admin: React.FC = () => {
         </div>
       </header>
 
-      <main className="container py-8">
+      <main className="container py-8 flex-1">
         <Tabs defaultValue="users" className="space-y-6">
           <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="users" className="gap-2">
@@ -122,6 +123,8 @@ const Admin: React.FC = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      <PoweredByFooter />
     </div>
   );
 };

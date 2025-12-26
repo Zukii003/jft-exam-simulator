@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { BookOpen, ArrowRight } from 'lucide-react';
 import { useEffect } from 'react';
+import PoweredByFooter from '@/components/PoweredByFooter';
 
 const Index = () => {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ const Index = () => {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
@@ -27,7 +28,7 @@ const Index = () => {
         <LanguageToggle />
       </header>
 
-      <main className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
+      <main className="flex flex-col items-center justify-center flex-1 px-6 text-center">
         <div className="max-w-2xl fade-in">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             JFT-Basic <span className="text-primary">Computer-Based Test</span>
@@ -49,6 +50,8 @@ const Index = () => {
           </div>
         </div>
       </main>
+
+      <PoweredByFooter />
     </div>
   );
 };

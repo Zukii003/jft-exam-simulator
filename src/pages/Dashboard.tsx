@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { BookOpen, LogOut, Play, Settings } from 'lucide-react';
 import { Exam } from '@/types/exam';
+import PoweredByFooter from '@/components/PoweredByFooter';
 
 const Dashboard: React.FC = () => {
   const { user, signOut, isAdmin } = useAuth();
@@ -76,7 +77,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
@@ -97,7 +98,7 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      <main className="container py-8">
+      <main className="container py-8 flex-1">
         <h2 className="text-2xl font-bold mb-6">{t('exams')}</h2>
         
         {exams.length === 0 ? (
@@ -136,6 +137,8 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </main>
+
+      <PoweredByFooter />
     </div>
   );
 };
