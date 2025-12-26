@@ -44,13 +44,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         {question.content_text}
       </p>
 
-      {/* Question content box with Japanese text - larger and prominent */}
+      {/* Question image - minimal padding for maximum visibility */}
       {question.type === 'image' && question.image_url && (
-        <div className="bg-card rounded-xl p-3 sm:p-4 border border-border shadow-sm">
+        <div className="rounded-lg overflow-hidden border border-border">
           <img
             src={question.image_url}
             alt="Question"
-            className="w-full h-auto rounded-lg max-h-[60vh] object-contain"
+            className="w-full h-auto max-h-[65vh] object-contain"
           />
         </div>
       )}
