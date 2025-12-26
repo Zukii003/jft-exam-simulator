@@ -61,9 +61,7 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
             <span className="sm:hidden">Finish</span>
           </Button>
           
-          <div className="hidden sm:block">
-            <LanguageToggle />
-          </div>
+          <LanguageToggle />
         </div>
       </div>
 
