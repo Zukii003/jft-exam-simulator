@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
     if (user) {
       // Fetch user's exam assignments
       const { data: assignmentData } = await supabase
-        .from('exam_assignments')
+        .from('user_exam_assignments')
         .select('exam_id')
         .eq('user_id', user.id);
       
