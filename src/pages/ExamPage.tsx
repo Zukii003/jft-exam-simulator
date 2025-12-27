@@ -24,7 +24,7 @@ import {
 
 const ExamPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -37,7 +37,7 @@ const ExamPage: React.FC = () => {
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [contentLoading, setContentLoading] = useState(true);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
   const [showTransition, setShowTransition] = useState(false);
@@ -66,8 +66,10 @@ const ExamPage: React.FC = () => {
       navigate('/dashboard');
       return;
     }
-    loadExamData();
-  }, [user, examId]);
+    if (!loading) {
+      loadExamData();
+    }
+  }, [user, examId, loading]);
 
   const loadExamData = async () => {
     try {
@@ -212,7 +214,7 @@ const ExamPage: React.FC = () => {
         setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
       }
 
-      setLoading(false);
+      setContentLoading(false);
     } catch (error) {
       console.error('Error loading exam:', error);
       toast({ title: t('error'), description: 'Failed to load exam', variant: 'destructive' });
@@ -414,7 +416,7 @@ const ExamPage: React.FC = () => {
     setShowTransition(false);
   };
 
-  if (loading) {
+  if (loading || contentLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
