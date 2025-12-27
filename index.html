@@ -8,15 +8,35 @@
     <meta name="description" content="Megono Jepun - Practice for your Japanese Language Proficiency Test with our realistic CBT simulation. Featuring all 4 sections: Characters & Vocabulary, Conversation & Expression, Listening, and Reading." />
     <meta name="author" content="JFT-Basic CBT Team" />
 
-    <!-- TODO: Update og:title to match your application name -->
+    <!-- Dynamic OG Image - Will be updated by client-side script -->
     <meta property="og:title" content="JFT-Basic CBT - Megono Jepun" />
     <meta property="og:description" content="Megono Jepun - Practice for your Japanese Language Proficiency Test with our realistic CBT simulation." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:image" id="og-image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:image" id="twitter-image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <!-- Script to update OG image dynamically -->
+    <script>
+      async function updateOGImage() {
+        try {
+          const response = await fetch('/api/v1/get-og-image');
+          const data = await response.json();
+          
+          if (data.og_image_url) {
+            document.getElementById('og-image').setAttribute('content', data.og_image_url);
+            document.getElementById('twitter-image').setAttribute('content', data.og_image_url);
+          }
+        } catch (error) {
+          console.log('Failed to fetch OG image:', error);
+        }
+      }
+      
+      // Update OG image when page loads
+      updateOGImage();
+    </script>
   </head>
 
   <body>
