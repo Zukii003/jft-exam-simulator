@@ -14,128 +14,102 @@ const Dashboard: React.FC = () => {
   const { user, signOut, isAdmin, loading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [attempts, setAttempts] = useState<Record<string, boolean>>({});
-  const [assignments, setAssignments] = useState<string[]>([]);
-
-  const fetchExams = async () => {
-    const { data: examData } = await supabase.from('exams').select('*');
-    if (examData) {
-      setExams(examData.map(e => ({
-        ...e,
-        sections_json: e.sections_json as any,
-        language_options: e.language_options as any
-      })));
-    }
-
-    if (user) {
-      // Fetch user's exam assignments
-      const { data: assignmentData } = await supabase
-        .from('exam_assignments')
-        .select('exam_id')
-        .eq('user_id', user.id);
-      
-      if (assignmentData) {
-        setAssignments(assignmentData.map(a => a.exam_id));
-      }
-
-      // Fetch user's attempts
-      const { data: attemptData } = await supabase
-        .from('exam_attempts')
-        .select('exam_id, submitted_at')
-        .eq('user_id', user.id);
-      
-      if (attemptData) {
-        const attemptMap: Record<string, boolean> = {};
-        attemptData.forEach(a => { attemptMap[a.exam_id] = !!a.submitted_at; });
-        setAttempts(attemptMap);
-      }
-    }
-  };
+  const [exams, setExams] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-      return;
-    }
+    // Simple exams fetch
+    const fetchExams = async () => {
+      try {
+        const { data, error } = await supabase.from('exams').select('*');
+        if (error) {
+          console.error('Exam fetch error:', error);
+        } else {
+          console.log('Exams loaded:', data);
+          setExams(data || []);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    };
+
     if (user) {
       fetchExams();
     }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">{t('loading')}</div>;
-  }
-
-  const handleStartExam = (examId: string) => {
-    navigate(`/exam/${examId}`);
-  };
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();
     navigate('/auth');
   };
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">{t('loading')}</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-card border-b border-border px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-  <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <BookOpen className="h-5 w-5 text-primary-foreground" />
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between py-4 gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">JFT-Basic CBT</h1>
+                <p className="text-sm text-gray-600">Megono Jepun</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <LanguageToggle />
+              {isAdmin && (
+                <Button variant="outline" onClick={() => navigate('/admin')} className="gap-2 border-gray-300 hover:bg-gray-50">
+                  <Settings className="h-4 w-4" /> {t('admin')}
+                </Button>
+              )}
+              <Button variant="ghost" onClick={handleLogout} className="gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                <LogOut className="h-4 w-4" /> {t('logout')}
+              </Button>
+            </div>
           </div>
-          <h1 className="text-xl font-semibold text-center sm:text-left break-words w-full">JFT-Basic CBT (Early Access)</h1>
         </div>
-        <div className="flex flex-row items-center gap-2">
-          <LanguageToggle />
-          {isAdmin && (
-            <Button variant="outline" onClick={() => navigate('/admin')} className="gap-2">
-              <Settings className="h-4 w-4" /> {t('admin')}
-            </Button>
-          )}
-          <Button variant="ghost" onClick={handleLogout} className="gap-2">
-            <LogOut className="h-4 w-4" /> {t('logout')}
-          </Button>
-        </div>
-      </div>
       </header>
 
-      <main className="container py-8 flex-1">
-        <h2 className="text-2xl font-bold mb-6">{t('exams')}</h2>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('exams')}</h2>
+          <p className="text-gray-600">Practice for your Japanese Language Proficiency Test with our realistic CBT simulation</p>
+        </div>
         
         {exams.length === 0 ? (
-          <p className="text-muted-foreground">{t('noExams')}</p>
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="h-8 w-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500">{t('noExams')}</p>
+            <p className="text-sm text-gray-400 mt-2">User: {user?.email}</p>
+            <p className="text-sm text-gray-400">Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
+            <p className="text-sm text-gray-400">Exams loaded: {exams.length}</p>
+          </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {exams.map((exam) => {
-              const isAssigned = isAdmin || assignments.includes(exam.id);
-              const hasAttempted = attempts[exam.id];
-              
-              return (
-                <Card key={exam.id} className={!isAssigned ? 'opacity-60' : ''}>
-                  <CardHeader>
-                    <CardTitle>{exam.title}</CardTitle>
-                    <CardDescription>{exam.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {!isAssigned ? (
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        Not assigned by admin
-                      </p>
-                    ) : (
-                      <Button
-                        onClick={() => handleStartExam(exam.id)}
-                        disabled={hasAttempted}
-                        className="w-full gap-2"
-                      >
-                        <Play className="h-4 w-4" />
-                        {hasAttempted ? t('alreadyAttempted') : t('startExam')}
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {exams.map((exam) => (
+              <Card key={exam.id} className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl text-gray-900 mb-2">{exam.title}</CardTitle>
+                  <CardDescription className="text-gray-600">{exam.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Button
+                    onClick={() => navigate(`/exam/${exam.id}`)}
+                    className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
+                  >
+                    <Play className="h-4 w-4" />
+                    {t('startExam')}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </main>
