@@ -20,7 +20,7 @@ const Dashboard: React.FC = () => {
 
   const fetchExams = async () => {
     try {
-      // Simple exam fetch
+      // Only fetch exams first
       const { data: examData, error: examError } = await supabase.from('exams').select('*');
       if (examError) {
         console.error('Exam fetch error:', examError);
@@ -28,38 +28,13 @@ const Dashboard: React.FC = () => {
       }
       
       if (examData) {
+        console.log('Exam data:', examData);
         setExams(examData as any[]);
       }
 
-      if (user) {
-        // Simple assignments fetch - use any to avoid type errors
-        const { data: assignmentData, error: assignmentError } = await supabase
-          .from('user_exam_assignments' as any)
-          .select('exam_id')
-          .eq('user_id', user.id);
-        
-        if (assignmentError) {
-          console.error('Assignment fetch error:', assignmentError);
-        } else if (assignmentData) {
-          setAssignments((assignmentData as any[]).map(a => a.exam_id));
-        }
-
-        // Simple attempts fetch
-        const { data: attemptData, error: attemptError } = await supabase
-          .from('exam_attempts' as any)
-          .select('exam_id')
-          .eq('user_id', user.id);
-        
-        if (attemptError) {
-          console.error('Attempt fetch error:', attemptError);
-        } else if (attemptData) {
-          const attemptMap: Record<string, boolean> = {};
-          (attemptData as any[]).forEach(a => { 
-            attemptMap[a.exam_id] = true; 
-          });
-          setAttempts(attemptMap);
-        }
-      }
+      // Skip assignments and attempts for now
+      console.log('User:', user);
+      
     } catch (error) {
       console.error('Fetch exams error:', error);
     }
