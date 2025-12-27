@@ -17,6 +17,37 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="/og-image.jpg" />
+
+    <!-- Block popup ads -->
+    <script>
+      // Block common popup ad selectors
+      (function() {
+        const adSelectors = [
+          '[id*="ad"]', '[class*="ad"]', '[id*="popup"]', '[class*="popup"]',
+          '[id*="modal"]', '[class*="modal"]', '[id*="overlay"]', '[class*="overlay"]',
+          '.lovable-ad', '.ad-container', '.popup-ad', '.modal-ad'
+        ];
+        
+        function removeAds() {
+          adSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => {
+              if (el.textContent.includes('ad') || el.textContent.includes('Ad') || 
+                  el.textContent.includes('promotion') || el.textContent.includes('upgrade')) {
+                el.remove();
+              }
+            });
+          });
+        }
+        
+        // Run immediately and periodically
+        removeAds();
+        setInterval(removeAds, 1000);
+        
+        // Block new elements
+        const observer = new MutationObserver(removeAds);
+        observer.observe(document.body, { childList: true, subtree: true });
+      })();
+    </script>
   </head>
 
   <body>
