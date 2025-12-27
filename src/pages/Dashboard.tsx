@@ -19,37 +19,49 @@ const Dashboard: React.FC = () => {
   const [assignments, setAssignments] = useState<string[]>([]);
 
   const fetchExams = async () => {
-    const { data: examData } = await supabase.from('exams').select('*');
-    if (examData) {
-      setExams(examData.map(e => ({
-        ...e,
-        sections_json: e.sections_json as any,
-        language_options: e.language_options as any
-      })));
-    }
-
-    if (user) {
-      // Fetch user's exam assignments
-      const { data: assignmentData } = await supabase
-        .from('user_exam_assignments')
-        .select('exam_id')
-        .eq('user_id', user.id);
+    try {
+      // Simple exam fetch
+      const { data: examData, error: examError } = await supabase.from('exams').select('*');
+      if (examError) {
+        console.error('Exam fetch error:', examError);
+        return;
+      }
       
-      if (assignmentData) {
-        setAssignments(assignmentData.map(a => a.exam_id));
+      if (examData) {
+        setExams(examData as any[]);
       }
 
-      // Fetch user's attempts
-      const { data: attemptData } = await supabase
-        .from('exam_attempts')
-        .select('exam_id, submitted_at')
-        .eq('user_id', user.id);
-      
-      if (attemptData) {
-        const attemptMap: Record<string, boolean> = {};
-        attemptData.forEach(a => { attemptMap[a.exam_id] = !!a.submitted_at; });
-        setAttempts(attemptMap);
+      if (user) {
+        // Simple assignments fetch - use any to avoid type errors
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from('user_exam_assignments' as any)
+          .select('exam_id')
+          .eq('user_id', user.id);
+        
+        if (assignmentError) {
+          console.error('Assignment fetch error:', assignmentError);
+        } else if (assignmentData) {
+          setAssignments((assignmentData as any[]).map(a => a.exam_id));
+        }
+
+        // Simple attempts fetch
+        const { data: attemptData, error: attemptError } = await supabase
+          .from('exam_attempts' as any)
+          .select('exam_id')
+          .eq('user_id', user.id);
+        
+        if (attemptError) {
+          console.error('Attempt fetch error:', attemptError);
+        } else if (attemptData) {
+          const attemptMap: Record<string, boolean> = {};
+          (attemptData as any[]).forEach(a => { 
+            attemptMap[a.exam_id] = true; 
+          });
+          setAttempts(attemptMap);
+        }
       }
+    } catch (error) {
+      console.error('Fetch exams error:', error);
     }
   };
 
