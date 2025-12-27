@@ -14,6 +14,28 @@ const Dashboard: React.FC = () => {
   const { user, signOut, isAdmin, loading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [exams, setExams] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Simple exams fetch
+    const fetchExams = async () => {
+      try {
+        const { data, error } = await supabase.from('exams').select('*');
+        if (error) {
+          console.error('Exam fetch error:', error);
+        } else {
+          console.log('Exams loaded:', data);
+          setExams(data || []);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    };
+
+    if (user) {
+      fetchExams();
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -59,14 +81,37 @@ const Dashboard: React.FC = () => {
           <p className="text-gray-600">Practice for your Japanese Language Proficiency Test with our realistic CBT simulation</p>
         </div>
         
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="h-8 w-8 text-gray-400" />
+        {exams.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="h-8 w-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500">{t('noExams')}</p>
+            <p className="text-sm text-gray-400 mt-2">User: {user?.email}</p>
+            <p className="text-sm text-gray-400">Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
+            <p className="text-sm text-gray-400">Exams loaded: {exams.length}</p>
           </div>
-          <p className="text-gray-500">Dashboard is loading...</p>
-          <p className="text-sm text-gray-400 mt-2">User: {user?.email}</p>
-          <p className="text-sm text-gray-400">Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
-        </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {exams.map((exam) => (
+              <Card key={exam.id} className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl text-gray-900 mb-2">{exam.title}</CardTitle>
+                  <CardDescription className="text-gray-600">{exam.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Button
+                    onClick={() => navigate(`/exam/${exam.id}`)}
+                    className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
+                  >
+                    <Play className="h-4 w-4" />
+                    {t('startExam')}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </main>
 
       <PoweredByFooter />
