@@ -44,16 +44,47 @@ const ExamPage: React.FC = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [userName, setUserName] = useState('');
 
-  const [state, setState] = useState<ExamState>({
-    currentSection: 1,
-    currentQuestionIndex: 0,
-    answers: {},
-    audioPlayCount: {},
-    sectionFinished: { '1': false, '2': false, '3': false, '4': false },
-    sectionTimes: {},
-    flaggedQuestions: [],
-    timeRemaining: EXAM_DURATION_SECONDS,
+  // Load state from localStorage on mount
+  const loadStateFromLocalStorage = useCallback(() => {
+    if (!examId) return null;
+    try {
+      const saved = localStorage.getItem(`examState_${examId}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }, [examId]);
+
+  // Save state to localStorage
+  const saveStateToLocalStorage = useCallback((newState: Partial<ExamState>) => {
+    if (!examId) return;
+    try {
+      const currentState = loadStateFromLocalStorage() || {};
+      const updatedState = { ...currentState, ...newState };
+      localStorage.setItem(`examState_${examId}`, JSON.stringify(updatedState));
+    } catch {
+      // Silently fail if localStorage is not available
+    }
+  }, [examId, loadStateFromLocalStorage]);
+
+  const [state, setState] = useState<ExamState>(() => {
+    const saved = loadStateFromLocalStorage();
+    return saved || {
+      currentSection: 1,
+      currentQuestionIndex: 0,
+      answers: {},
+      audioPlayCount: {},
+      sectionFinished: { '1': false, '2': false, '3': false, '4': false },
+      sectionTimes: {},
+      flaggedQuestions: [],
+      timeRemaining: EXAM_DURATION_SECONDS,
+    };
   });
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    saveStateToLocalStorage(state);
+  }, [state, saveStateToLocalStorage]);
 
   // Get current section questions
   const sectionQuestions = questions.filter(q => q.section_number === state.currentSection);
@@ -62,16 +93,20 @@ const ExamPage: React.FC = () => {
 
   // Load exam data
   useEffect(() => {
-    if (!user || !examId) {
+    if (!examId) {
       navigate('/dashboard');
       return;
     }
     if (!loading) {
       loadExamData();
     }
-  }, [user, examId, loading]);
+  }, [examId, loading]);
 
   const loadExamData = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
     try {
       // Fetch user profile
       const { data: profile } = await supabase
@@ -179,15 +214,18 @@ const ExamPage: React.FC = () => {
         );
         const restoredIndex = firstUnansweredIdx === -1 ? 0 : firstUnansweredIdx;
 
+        // Get state from localStorage if exists
+        const localState = loadStateFromLocalStorage();
+
         setState(prev => ({
           ...prev,
           currentSection: restoredSection,
-          currentQuestionIndex: restoredIndex,
-          answers: restoredAnswers,
-          audioPlayCount: existingAttempt.audio_play_json as Record<string, number>,
-          sectionFinished: existingAttempt.section_finished_json as Record<string, boolean>,
-          sectionTimes: existingAttempt.section_times_json as Record<string, number>,
-          flaggedQuestions: existingAttempt.flagged_questions_json as string[],
+          currentQuestionIndex: localState?.currentQuestionIndex ?? restoredIndex,
+          answers: { ...restoredAnswers, ...localState?.answers },
+          audioPlayCount: { ...existingAttempt.audio_play_json, ...localState?.audioPlayCount },
+          sectionFinished: { ...existingAttempt.section_finished_json, ...localState?.sectionFinished },
+          sectionTimes: { ...existingAttempt.section_times_json, ...localState?.sectionTimes },
+          flaggedQuestions: [...(existingAttempt.flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
           timeRemaining: derivedTimeRemaining,
         }));
       } else {
