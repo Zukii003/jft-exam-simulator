@@ -10,7 +10,7 @@ import { ExamManager } from '@/components/admin/ExamManager';
 import { QuestionManager } from '@/components/admin/QuestionManager';
 import { ResultsExport } from '@/components/admin/ResultsExport';
 import { UserManager } from '@/components/admin/UserManager';
-import { WebsiteMetadataManager } from '@/components/admin/WebsiteMetadataManager';
+import { WebsiteMetadataManagerSimple } from '@/components/admin/WebsiteMetadataManagerSimple';
 import { BookOpen, LogOut, ArrowLeft, FileText, HelpCircle, Download, Users, Settings } from 'lucide-react';
 import { Exam } from '@/types/exam';
 import PoweredByFooter from '@/components/PoweredByFooter';
@@ -128,7 +128,7 @@ const Admin: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="website" className="fade-in">
-            <WebsiteMetadataManager />
+            <WebsiteMetadataManagerSimple />
           </TabsContent>
         </Tabs>
       </main>
