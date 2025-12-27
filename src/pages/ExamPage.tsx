@@ -112,6 +112,14 @@ const ExamPage: React.FC = () => {
   const currentQuestion = sectionQuestions[state.currentQuestionIndex];
   const isListeningSection = state.currentSection === 3;
 
+  // Debug: Check if we have questions
+  console.log('Questions loaded:', questions.length);
+  console.log('Current section:', state.currentSection);
+  console.log('Section questions:', sectionQuestions.length);
+  console.log('Current question index:', state.currentQuestionIndex);
+  console.log('Current question:', currentQuestion);
+  console.log('Time remaining:', state.timeRemaining);
+
   // Load exam data
   useEffect(() => {
     if (!examId) {
@@ -129,14 +137,7 @@ const ExamPage: React.FC = () => {
       return;
     }
     try {
-      // Fetch user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles' as any)
-        .select('name')
-        .eq('id', user!.id)
-        .maybeSingle();
-      
-      if (!profileError && profile) setUserName((profile as any).name);
+      console.log('Loading exam data for examId:', examId);
 
       // Fetch exam
       const { data: examData, error: examError } = await supabase
@@ -146,97 +147,58 @@ const ExamPage: React.FC = () => {
         .single();
 
       if (examError || !examData) {
+        console.error('Exam fetch error:', examError);
         toast({ title: t('error'), description: 'Exam not found', variant: 'destructive' });
         navigate('/dashboard');
         return;
       }
 
-      const typedExam: Exam = {
-        ...(examData as any),
-        sections_json: (examData as any).sections_json as unknown as Section[],
-        language_options: (examData as any).language_options as unknown as string[],
-      };
-      setExam(typedExam);
+      console.log('Exam data loaded:', examData);
+      setExam(examData as any);
 
-      // Fetch questions from secure view (hides correct_answer from non-admins)
-      const { data: questionsData } = await supabase
+      // Fetch questions
+      const { data: questionsData, error: questionsError } = await supabase
         .from('questions' as any)
         .select('*')
         .eq('exam_id', examId)
         .order('section_number')
         .order('question_order');
 
-      if (questionsData) {
-        // Process questions and generate signed URLs for assets
-        const processedQuestions = await Promise.all(
-          (questionsData as any[]).map(async (q: any) => {
-            let imageUrl = q.image_url;
-            let audioUrl = q.audio_url;
-
-            // Generate signed URLs for assets (valid for 3 hours - covers exam duration)
-            if (imageUrl && !imageUrl.startsWith('http')) {
-              const { data } = await supabase.storage
-                .from('exam-assets' as any)
-                .createSignedUrl(imageUrl, 10800); // 3 hours
-              imageUrl = data?.signedUrl || imageUrl;
-            }
-            if (audioUrl && !audioUrl.startsWith('http')) {
-              const { data } = await supabase.storage
-                .from('exam-assets' as any)
-                .createSignedUrl(audioUrl, 10800); // 3 hours
-              audioUrl = data?.signedUrl || audioUrl;
-            }
-
-            return {
-              ...q,
-              image_url: imageUrl,
-              audio_url: audioUrl,
-              options_json: q.options_json as string[],
-              type: q.type as 'text' | 'image' | 'audio',
-            };
-          })
-        );
-        setQuestions(processedQuestions);
-      }
-
-      // Check for existing attempt
-      const { data: existingAttempt, error: attemptError } = await supabase
-        .from('exam_attempts' as any)
-        .select('*')
-        .eq('exam_id', examId)
-        .eq('user_id', user!.id)
-        .maybeSingle();
-
-      if (existingAttempt) {
-        // Resume existing attempt
-        setAttemptId((existingAttempt as any).id);
-        startedAtMsRef.current = new Date((existingAttempt as any).started_at).getTime();
-        saveStartTimeToLocalStorage(startedAtMsRef.current);
-        setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
+      if (questionsError) {
+        console.error('Questions fetch error:', questionsError);
       } else {
-        // Create new attempt with upsert to avoid conflicts
-        const { data: newAttempt, error: attemptError } = await supabase
-          .from('exam_attempts' as any)
-          .upsert({
-            exam_id: examId,
-            user_id: user!.id,
-            status: 'in_progress',
-          })
-          .select()
-          .single();
-
-        if (attemptError) {
-          console.error('Attempt creation error:', attemptError);
-          toast({ title: t('error'), description: 'Failed to start exam', variant: 'destructive' });
-          navigate('/dashboard');
-          return;
-        }
-
-        setAttemptId((newAttempt as any).id);
-        startedAtMsRef.current = new Date((newAttempt as any).started_at).getTime();
-        saveStartTimeToLocalStorage(startedAtMsRef.current);
-        setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
+        console.log('Questions data loaded:', questionsData);
+        setQuestions(questionsData || []);
       }
+
+      // Create new attempt
+      const { data: newAttempt, error: attemptError } = await supabase
+        .from('exam_attempts' as any)
+        .insert({
+          exam_id: examId,
+          user_id: user!.id,
+          status: 'in_progress',
+        })
+        .select()
+        .single();
+
+      if (attemptError) {
+        console.error('Attempt creation error:', attemptError);
+        toast({ title: t('error'), description: 'Failed to start exam', variant: 'destructive' });
+        navigate('/dashboard');
+        return;
+      }
+
+      console.log('New attempt created:', newAttempt);
+      setAttemptId((newAttempt as any).id);
+      startedAtMsRef.current = new Date((newAttempt as any).started_at).getTime();
+      saveStartTimeToLocalStorage(startedAtMsRef.current);
+
+      // Set initial state
+      setState(prev => ({
+        ...prev,
+        timeRemaining: (examData as any).duration_minutes * 60 || 3600
+      }));
 
       setContentLoading(false);
     } catch (error) {
