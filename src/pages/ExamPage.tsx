@@ -205,51 +205,81 @@ const ExamPage: React.FC = () => {
         .select('*')
         .eq('exam_id', examId)
         .eq('user_id', user!.id)
-        .maybeSingle();
+        .single();
 
       if (existingAttempt) {
+        // If attempt is already submitted, create a new attempt
         if (existingAttempt.submitted_at) {
-          toast({ title: t('alreadyAttempted'), variant: 'destructive' });
-          navigate('/dashboard');
-          return;
+          // Create new attempt
+          const { data: newAttempt, error: attemptError } = await supabase
+            .from('exam_attempts')
+            .insert({
+              exam_id: examId,
+              user_id: user!.id,
+            })
+            .select()
+            .single();
+
+          if (attemptError) {
+            toast({ title: t('error'), description: attemptError.message, variant: 'destructive' });
+            navigate('/dashboard');
+            return;
+          }
+
+          setAttemptId(newAttempt.id);
+          startedAtMsRef.current = new Date(newAttempt.started_at).getTime();
+          saveStartTimeToLocalStorage(startedAtMsRef.current);
+
+          // New attempt starts with full duration and from section 1
+          setState(prev => ({ 
+            ...prev, 
+            currentSection: 1,
+            currentQuestionIndex: 0,
+            answers: {},
+            audioPlayCount: {},
+            sectionFinished: { '1': false, '2': false, '3': false, '4': false },
+            sectionTimes: {},
+            flaggedQuestions: [],
+            timeRemaining: EXAM_DURATION_SECONDS 
+          }));
+        } else {
+          // Resume incomplete attempt
+          setAttemptId(existingAttempt.id);
+
+          // Keep exam time running across tab changes/reloads by deriving from started_at
+          startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date(existingAttempt.started_at).getTime();
+          saveStartTimeToLocalStorage(startedAtMsRef.current);
+          const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
+          const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
+
+          // Restore answers/progress
+          const restoredAnswers = existingAttempt.answers_json as Record<string, string>;
+          const restoredSection = existingAttempt.current_section;
+          const restoredSectionQuestions = (questionsData || [])
+            .filter((q: any) => q.section_number === restoredSection)
+            .sort((a: any, b: any) => (a.question_order ?? 0) - (b.question_order ?? 0));
+
+          // Best-effort: restore the current question index to the first unanswered in the current section
+          const firstUnansweredIdx = restoredSectionQuestions.findIndex(
+            (q: any) => !restoredAnswers?.[q.id]
+          );
+          const restoredIndex = firstUnansweredIdx === -1 ? 0 : firstUnansweredIdx;
+
+          // Get state from localStorage if exists
+          const localState = loadStateFromLocalStorage();
+
+          setState(prev => ({
+            ...prev,
+            currentSection: restoredSection,
+            currentQuestionIndex: localState?.currentQuestionIndex ?? restoredIndex,
+            answers: { ...restoredAnswers, ...localState?.answers },
+            audioPlayCount: { ...existingAttempt.audio_play_json, ...localState?.audioPlayCount },
+            sectionFinished: { ...existingAttempt.section_finished_json, ...localState?.sectionFinished },
+            sectionTimes: { ...existingAttempt.section_times_json, ...localState?.sectionTimes },
+            flaggedQuestions: [...(existingAttempt.flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
+            timeRemaining: derivedTimeRemaining,
+          }));
         }
-
-        // Resume attempt
-        setAttemptId(existingAttempt.id);
-
-        // Keep exam time running across tab changes/reloads by deriving from started_at
-        startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date(existingAttempt.started_at).getTime();
-        saveStartTimeToLocalStorage(startedAtMsRef.current);
-        const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
-        const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
-
-        // Restore answers/progress
-        const restoredAnswers = existingAttempt.answers_json as Record<string, string>;
-        const restoredSection = existingAttempt.current_section;
-        const restoredSectionQuestions = (questionsData || [])
-          .filter((q: any) => q.section_number === restoredSection)
-          .sort((a: any, b: any) => (a.question_order ?? 0) - (b.question_order ?? 0));
-
-        // Best-effort: restore the current question index to the first unanswered in the current section
-        const firstUnansweredIdx = restoredSectionQuestions.findIndex(
-          (q: any) => !restoredAnswers?.[q.id]
-        );
-        const restoredIndex = firstUnansweredIdx === -1 ? 0 : firstUnansweredIdx;
-
-        // Get state from localStorage if exists
-        const localState = loadStateFromLocalStorage();
-
-        setState(prev => ({
-          ...prev,
-          currentSection: restoredSection,
-          currentQuestionIndex: localState?.currentQuestionIndex ?? restoredIndex,
-          answers: { ...restoredAnswers, ...localState?.answers },
-          audioPlayCount: { ...existingAttempt.audio_play_json, ...localState?.audioPlayCount },
-          sectionFinished: { ...existingAttempt.section_finished_json, ...localState?.sectionFinished },
-          sectionTimes: { ...existingAttempt.section_times_json, ...localState?.sectionTimes },
-          flaggedQuestions: [...(existingAttempt.flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
-          timeRemaining: derivedTimeRemaining,
-        }));
       } else {
         // Create new attempt
         const { data: newAttempt, error: attemptError } = await supabase
