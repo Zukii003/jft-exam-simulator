@@ -78,14 +78,15 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+      <header className="bg-card border-b border-border px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+  <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <BookOpen className="h-5 w-5 text-primary-foreground" />
           </div>
-          <h1 className="text-xl font-semibold">JFT-Basic CBT (Early Access)</h1>
+          <h1 className="text-xl font-semibold text-center sm:text-left break-words w-full">JFT-Basic CBT (Early Access)</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-row items-center gap-2">
           <LanguageToggle />
           {isAdmin && (
             <Button variant="outline" onClick={() => navigate('/admin')} className="gap-2">
