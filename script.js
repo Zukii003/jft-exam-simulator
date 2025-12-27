@@ -192,4 +192,23 @@ function showResults() {
     
     let message = '';
     if (percentage >= 80) {
-        message = 'Excellent! You did great!
+        message = 'Excellent! You did great!';
+    } else if (percentage >= 60) {
+        message = 'Good job! Keep practicing!';
+    } else if (percentage >= 40) {
+        message = 'Not bad! You can do better!';
+    } else {
+        message = 'Keep practicing! You will improve!';
+    }
+    
+    document.getElementById('result-message').textContent = message;
+}
+
+function restartExam() {
+    showScreen('welcome-screen');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    showScreen('welcome-screen');
+});
