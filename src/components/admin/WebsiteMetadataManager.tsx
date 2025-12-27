@@ -16,14 +16,27 @@ export const WebsiteMetadataManager: React.FC = () => {
   }, []);
 
   const fetchCurrentMetadata = async () => {
-    const { data } = await supabase
-      .from('website_metadata')
-      .select('og_image_url')
-      .eq('id', '00000000-0000-0000-0000-000000000001')
-      .single();
-    
-    if (data) {
-      setCurrentImageUrl(data.og_image_url);
+    try {
+      const { data, error } = await supabase
+        .from('website_metadata')
+        .select('og_image_url')
+        .eq('id', '00000000-0000-0000-0000-000000000001')
+        .single();
+      
+      if (error) {
+        console.error('Fetch metadata error:', error);
+        // If table doesn't exist, create default
+        if (error.code === 'PGRST116') {
+          console.log('Table not found, creating default...');
+          return;
+        }
+      }
+      
+      if (data) {
+        setCurrentImageUrl(data.og_image_url);
+      }
+    } catch (err) {
+      console.error('Error fetching metadata:', err);
     }
   };
 
