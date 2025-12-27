@@ -130,13 +130,13 @@ const ExamPage: React.FC = () => {
     }
     try {
       // Fetch user profile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles' as any)
         .select('name')
         .eq('id', user!.id)
-        .single();
+        .maybeSingle();
       
-      if (profile) setUserName((profile as any).name);
+      if (!profileError && profile) setUserName((profile as any).name);
 
       // Fetch exam
       const { data: examData, error: examError } = await supabase
@@ -200,86 +200,51 @@ const ExamPage: React.FC = () => {
       }
 
       // Check for existing attempt
-      const { data: existingAttempt } = await supabase
+      const { data: existingAttempt, error: attemptError } = await supabase
         .from('exam_attempts' as any)
         .select('*')
         .eq('exam_id', examId)
         .eq('user_id', user!.id)
-        .single();
+        .eq('status', 'in_progress')
+        .maybeSingle();
 
       if (existingAttempt) {
-        // If attempt is already submitted, create a new attempt
-        if ((existingAttempt as any).submitted_at) {
-          // Create new attempt
-          const { data: newAttempt, error: attemptError } = await supabase
-            .from('exam_attempts' as any)
-            .insert({
-              exam_id: examId,
-              user_id: user!.id,
-            })
-            .select()
-            .single();
+        // Resume existing attempt
+        setAttemptId((existingAttempt as any).id);
 
-          if (attemptError) {
-            toast({ title: t('error'), description: attemptError.message, variant: 'destructive' });
-            navigate('/dashboard');
-            return;
-          }
+        // Keep exam time running across tab changes/reloads by deriving from started_at
+        startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date((existingAttempt as any).started_at).getTime();
+        saveStartTimeToLocalStorage(startedAtMsRef.current);
+        const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
+        const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
 
-          setAttemptId((newAttempt as any).id);
-          startedAtMsRef.current = new Date((newAttempt as any).started_at).getTime();
-          saveStartTimeToLocalStorage(startedAtMsRef.current);
+        // Restore answers/progress
+        const restoredAnswers = (existingAttempt as any).answers_json as Record<string, string>;
+        const restoredSection = (existingAttempt as any).current_section;
+        const restoredSectionQuestions = (questionsData || [])
+          .filter((q: any) => q.section_number === restoredSection)
+          .sort((a: any, b: any) => (a.question_order ?? 0) - (b.question_order ?? 0));
 
-          // New attempt starts with full duration and from section 1
-          setState(prev => ({ 
-            ...prev, 
-            currentSection: 1,
-            currentQuestionIndex: 0,
-            answers: {},
-            audioPlayCount: {},
-            sectionFinished: { '1': false, '2': false, '3': false, '4': false },
-            sectionTimes: {},
-            flaggedQuestions: [],
-            timeRemaining: EXAM_DURATION_SECONDS 
-          }));
-        } else {
-          // Resume incomplete attempt
-          setAttemptId((existingAttempt as any).id);
+        // Best-effort: restore the current question index to the first unanswered in the current section
+        const firstUnansweredIdx = restoredSectionQuestions.findIndex(
+          (q: any) => !restoredAnswers?.[q.id]
+        );
+        const restoredIndex = firstUnansweredIdx === -1 ? 0 : firstUnansweredIdx;
 
-          // Keep exam time running across tab changes/reloads by deriving from started_at
-          startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date((existingAttempt as any).started_at).getTime();
-          saveStartTimeToLocalStorage(startedAtMsRef.current);
-          const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
-          const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
+        // Get state from localStorage if exists
+        const localState = loadStateFromLocalStorage();
 
-          // Restore answers/progress
-          const restoredAnswers = (existingAttempt as any).answers_json as Record<string, string>;
-          const restoredSection = (existingAttempt as any).current_section;
-          const restoredSectionQuestions = (questionsData || [])
-            .filter((q: any) => q.section_number === restoredSection)
-            .sort((a: any, b: any) => (a.question_order ?? 0) - (b.question_order ?? 0));
-
-          // Best-effort: restore the current question index to the first unanswered in the current section
-          const firstUnansweredIdx = restoredSectionQuestions.findIndex(
-            (q: any) => !restoredAnswers?.[q.id]
-          );
-          const restoredIndex = firstUnansweredIdx === -1 ? 0 : firstUnansweredIdx;
-
-          // Get state from localStorage if exists
-          const localState = loadStateFromLocalStorage();
-
-          setState(prev => ({
-            ...prev,
-            currentSection: restoredSection,
-            currentQuestionIndex: localState?.currentQuestionIndex ?? restoredIndex,
-            answers: { ...restoredAnswers, ...localState?.answers },
-            audioPlayCount: { ...(existingAttempt as any).audio_play_json, ...localState?.audioPlayCount },
-            sectionFinished: { ...(existingAttempt as any).section_finished_json, ...localState?.sectionFinished },
-            sectionTimes: { ...(existingAttempt as any).section_times_json, ...localState?.sectionTimes },
-            flaggedQuestions: [...((existingAttempt as any).flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
-            timeRemaining: derivedTimeRemaining,
-          }));
-        }
+        setState(prev => ({
+          ...prev,
+          currentSection: restoredSection,
+          currentQuestionIndex: localState?.currentQuestionIndex ?? restoredIndex,
+          answers: { ...restoredAnswers, ...localState?.answers },
+          audioPlayCount: { ...(existingAttempt as any).audio_play_json, ...localState?.audioPlayCount },
+          sectionFinished: { ...(existingAttempt as any).section_finished_json, ...localState?.sectionFinished },
+          sectionTimes: { ...(existingAttempt as any).section_times_json, ...localState?.sectionTimes },
+          flaggedQuestions: [...((existingAttempt as any).flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
+          timeRemaining: derivedTimeRemaining,
+        }));
       } else {
         // Create new attempt
         const { data: newAttempt, error: attemptError } = await supabase
@@ -292,7 +257,28 @@ const ExamPage: React.FC = () => {
           .single();
 
         if (attemptError) {
-          toast({ title: t('error'), description: attemptError.message, variant: 'destructive' });
+          console.error('Attempt creation error:', attemptError);
+          // If 409 conflict, try to get existing attempt
+          if (attemptError.code === '409' || attemptError.message.includes('duplicate')) {
+            const { data: retryAttempt } = await supabase
+              .from('exam_attempts' as any)
+              .select('*')
+              .eq('exam_id', examId)
+              .eq('user_id', user!.id)
+              .eq('status', 'in_progress')
+              .maybeSingle();
+            
+            if (retryAttempt) {
+              setAttemptId((retryAttempt as any).id);
+              startedAtMsRef.current = new Date((retryAttempt as any).started_at).getTime();
+              saveStartTimeToLocalStorage(startedAtMsRef.current);
+              setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
+              setContentLoading(false);
+              return;
+            }
+          }
+          
+          toast({ title: t('error'), description: 'Failed to start exam', variant: 'destructive' });
           navigate('/dashboard');
           return;
         }
