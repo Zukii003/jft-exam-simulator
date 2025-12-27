@@ -8,43 +8,14 @@
 </head>
 <body>
     <div id="app">
+        <!-- Welcome Screen -->
         <div id="welcome-screen" class="screen active">
             <h1>JFT-Basic CBT Simulator</h1>
             <p>Uji Kemampuan Bahasa Jepang Anda</p>
             <button onclick="startExam()">Mulai Ujian</button>
         </div>
         
+        <!-- Exam Screen -->
         <div id="exam-screen" class="screen">
             <div class="exam-header">
-                <h2>JFT-Basic Exam</h2>
-                <div class="timer">
-                    <span id="timer">00:00:00</span>
-                </div>
-            </div>
-            
-            <div class="exam-content">
-                <div class="question-section">
-                    <div id="question-number">Pertanyaan 1 dari 10</div>
-                    <div id="question-text">Question will appear here...</div>
-                    <div id="question-options"></div>
-                </div>
-                
-                <div class="navigation">
-                    <button onclick="previousQuestion()">Previous</button>
-                    <button onclick="nextQuestion()">Next</button>
-                    <button onclick="finishExam()">Finish Exam</button>
-                </div>
-            </div>
-        </div>
-        
-        <div id="results-screen" class="screen">
-            <h2>Hasil Ujian</h2>
-            <div id="score-display">Score: 0/10</div>
-            <div id="result-message">Keep practicing!</div>
-            <button onclick="restartExam()">Try Again</button>
-        </div>
-    </div>
-    
-    <script src="script.js"></script>
-</body>
-</html>
+                <h2 id="section-title">Section 1: 文字と語
