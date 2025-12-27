@@ -67,6 +67,27 @@ const ExamPage: React.FC = () => {
     }
   }, [examId, loadStateFromLocalStorage]);
 
+  // Save startedAtMsRef to localStorage
+  const saveStartTimeToLocalStorage = useCallback((startTime: number | null) => {
+    if (!examId) return;
+    try {
+      localStorage.setItem(`examStartTime_${examId}`, JSON.stringify(startTime));
+    } catch {
+      // Silently fail if localStorage is not available
+    }
+  }, [examId]);
+
+  // Load startedAtMsRef from localStorage
+  const loadStartTimeFromLocalStorage = useCallback(() => {
+    if (!examId) return null;
+    try {
+      const saved = localStorage.getItem(`examStartTime_${examId}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }, [examId]);
+
   const [state, setState] = useState<ExamState>(() => {
     const saved = loadStateFromLocalStorage();
     return saved || {
@@ -197,7 +218,8 @@ const ExamPage: React.FC = () => {
         setAttemptId(existingAttempt.id);
 
         // Keep exam time running across tab changes/reloads by deriving from started_at
-        startedAtMsRef.current = new Date(existingAttempt.started_at).getTime();
+        startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date(existingAttempt.started_at).getTime();
+        saveStartTimeToLocalStorage(startedAtMsRef.current);
         const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
         const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
 
@@ -247,6 +269,7 @@ const ExamPage: React.FC = () => {
 
         setAttemptId(newAttempt.id);
         startedAtMsRef.current = new Date(newAttempt.started_at).getTime();
+        saveStartTimeToLocalStorage(startedAtMsRef.current);
 
         // New attempt starts with full duration
         setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
@@ -311,7 +334,7 @@ const ExamPage: React.FC = () => {
 
   // Global exam timer - derive timeRemaining from started_at so it keeps running across tab changes/reloads
   useEffect(() => {
-    if (loading || isComplete) return;
+    if (loading || contentLoading || isComplete) return;
 
     // If startedAt isn't set yet, don't start the timer
     if (!startedAtMsRef.current) return;
@@ -329,7 +352,7 @@ const ExamPage: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [loading, isComplete, EXAM_DURATION_SECONDS]);
+  }, [loading, contentLoading, isComplete, EXAM_DURATION_SECONDS]);
 
   // Handle answer selection
   const handleAnswerSelect = (answer: string) => {
