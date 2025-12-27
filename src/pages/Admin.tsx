@@ -10,7 +10,8 @@ import { ExamManager } from '@/components/admin/ExamManager';
 import { QuestionManager } from '@/components/admin/QuestionManager';
 import { ResultsExport } from '@/components/admin/ResultsExport';
 import { UserManager } from '@/components/admin/UserManager';
-import { BookOpen, LogOut, ArrowLeft, FileText, HelpCircle, Download, Users } from 'lucide-react';
+import { WebsiteMetadataManager } from '@/components/admin/WebsiteMetadataManager';
+import { BookOpen, LogOut, ArrowLeft, FileText, HelpCircle, Download, Users, Settings } from 'lucide-react';
 import { Exam } from '@/types/exam';
 import PoweredByFooter from '@/components/PoweredByFooter';
 
@@ -79,7 +80,7 @@ const Admin: React.FC = () => {
 
       <main className="container py-8 flex-1">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               Users
@@ -95,6 +96,10 @@ const Admin: React.FC = () => {
             <TabsTrigger value="results" className="gap-2">
               <Download className="h-4 w-4" />
               {t('results')}
+            </TabsTrigger>
+            <TabsTrigger value="website" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Website
             </TabsTrigger>
           </TabsList>
 
@@ -120,6 +125,10 @@ const Admin: React.FC = () => {
 
           <TabsContent value="results" className="fade-in">
             <ResultsExport exams={exams} />
+          </TabsContent>
+
+          <TabsContent value="website" className="fade-in">
+            <WebsiteMetadataManager />
           </TabsContent>
         </Tabs>
       </main>
