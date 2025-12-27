@@ -133,9 +133,15 @@ function selectOption(optionIndex) {
 
 // Timer functions
 function startTimer() {
+    seconds = 3600; // 60 minutes in seconds
     timer = setInterval(() => {
-        seconds++;
-        updateTimerDisplay();
+        if (seconds > 0) {
+            seconds--;
+            updateTimerDisplay();
+        } else {
+            stopTimer();
+            finishExam(); // Auto finish when time is up
+        }
     }, 1000);
 }
 
