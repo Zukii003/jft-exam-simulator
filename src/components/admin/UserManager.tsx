@@ -7,8 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { Users, BookOpen, RefreshCw, UserPlus } from 'lucide-react';
+import { Users, BookOpen, RefreshCw, UserPlus, Trash2, UserX } from 'lucide-react';
 import { Exam, Profile } from '@/types/exam';
 
 interface ExamAssignment {
@@ -39,6 +42,12 @@ export const UserManager: React.FC<UserManagerProps> = ({ exams }) => {
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string>('');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'user' | 'admin'>('user');
+  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -142,6 +151,98 @@ export const UserManager: React.FC<UserManagerProps> = ({ exams }) => {
     fetchData();
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserName) {
+      toast({ title: 'Error', description: 'Please fill all fields', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      // Create user via signup (this will send an email)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: Math.random().toString(36).slice(-8), // Generate random password
+        options: {
+          data: { name: newUserName }
+        }
+      });
+
+      if (authError) {
+        toast({ title: 'Error', description: authError.message, variant: 'destructive' });
+        return;
+      }
+
+      if (authData.user) {
+        // Create profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: authData.user.id,
+            name: newUserName,
+            email: newUserEmail
+          });
+
+        if (profileError) {
+          toast({ title: 'Error', description: profileError.message, variant: 'destructive' });
+          return;
+        }
+
+        // Set role
+        if (newUserRole === 'admin') {
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: authData.user.id,
+              role: 'admin'
+            });
+
+          if (roleError) {
+            toast({ title: 'Error', description: roleError.message, variant: 'destructive' });
+            return;
+          }
+        }
+
+        toast({ 
+          title: 'User Created', 
+          description: `User created successfully. A confirmation email has been sent to ${newUserEmail}.` 
+        });
+        setCreateUserDialogOpen(false);
+        setNewUserEmail('');
+        setNewUserName('');
+        setNewUserRole('user');
+        fetchData();
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to create user', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      // Delete user's data from all tables
+      await supabase.from('exam_attempts').delete().eq('user_id', userToDelete.user_id);
+      await supabase.from('exam_assignments').delete().eq('user_id', userToDelete.user_id);
+      await supabase.from('user_roles').delete().eq('user_id', userToDelete.user_id);
+      await supabase.from('profiles').delete().eq('user_id', userToDelete.user_id);
+
+      // Note: We cannot delete the auth user from client-side due to security restrictions
+      // The auth user will remain but cannot access the app without a profile
+      // To fully delete the auth user, this needs to be done via Supabase Dashboard or server-side function
+
+      toast({ 
+        title: 'User Deleted', 
+        description: 'User data has been removed. The auth account remains but cannot access the app.' 
+      });
+      setDeleteUserDialogOpen(false);
+      setUserToDelete(null);
+      fetchData();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete user data', variant: 'destructive' });
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-8">{t('loading')}</div>;
   }
@@ -153,10 +254,61 @@ export const UserManager: React.FC<UserManagerProps> = ({ exams }) => {
           <Users className="h-5 w-5" />
           Registered Users ({users.length})
         </CardTitle>
-        <Button variant="outline" size="sm" onClick={fetchData}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create User
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    placeholder="Enter user name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="role">Role</Label>
+                  <Select value={newUserRole} onValueChange={(value: 'user' | 'admin') => setNewUserRole(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleCreateUser} className="w-full">
+                  Create User
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" size="sm" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {users.length === 0 ? (
@@ -230,44 +382,71 @@ export const UserManager: React.FC<UserManagerProps> = ({ exams }) => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Dialog open={assignDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
-                        setAssignDialogOpen(open);
-                        if (open) setSelectedUser(user);
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="gap-1">
-                            <UserPlus className="h-4 w-4" />
-                            Assign Exam
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Assign Exam to {user.name}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4 pt-4">
-                            <Select value={selectedExamId} onValueChange={setSelectedExamId}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select an exam" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {exams.map((exam) => (
-                                  <SelectItem key={exam.id} value={exam.id}>
-                                    {exam.title}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button 
-                              onClick={handleAssignExam} 
-                              className="w-full"
-                              disabled={!selectedExamId}
-                            >
-                              <BookOpen className="h-4 w-4 mr-2" />
+                      <div className="flex gap-2">
+                        <Dialog open={assignDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                          setAssignDialogOpen(open);
+                          if (open) setSelectedUser(user);
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <UserPlus className="h-4 w-4" />
                               Assign Exam
                             </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Assign Exam to {user.name}</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 pt-4">
+                              <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select an exam" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {exams.map((exam) => (
+                                    <SelectItem key={exam.id} value={exam.id}>
+                                      {exam.title}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button 
+                                onClick={handleAssignExam} 
+                                className="w-full"
+                                disabled={!selectedExamId}
+                              >
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                Assign Exam
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <AlertDialog open={deleteUserDialogOpen && userToDelete?.id === user.id} onOpenChange={(open) => {
+                          setDeleteUserDialogOpen(open);
+                          if (open) setUserToDelete(user);
+                        }}>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1 text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete {user.name}? This action cannot be undone and will remove all their data including exam attempts and assignments.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Delete User
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

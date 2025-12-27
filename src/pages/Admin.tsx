@@ -79,7 +79,7 @@ const Admin: React.FC = () => {
 
       <main className="container py-8 flex-1">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               Users

@@ -53,13 +53,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAdminRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('user_roles')
+        .from('profiles' as any)
         .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
+        .eq('id', userId)
+        .single();
       
-      if (!error && data) {
+      if (!error && data && (data as any).role === 'admin') {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
