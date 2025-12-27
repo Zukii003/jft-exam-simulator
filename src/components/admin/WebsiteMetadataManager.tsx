@@ -31,6 +31,8 @@ export const WebsiteMetadataManager: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('File selected:', file.name, file.type, file.size);
+
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
       toast({
@@ -53,8 +55,28 @@ export const WebsiteMetadataManager: React.FC = () => {
     setUploading(true);
 
     try {
+      // Check if bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(b => b.name === 'website-assets');
+      
+      if (!bucketExists) {
+        console.log('Creating bucket...');
+        const { error: bucketError } = await supabase.storage.createBucket('website-assets', {
+          public: true,
+          fileSizeLimit: 5242880, // 5MB
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        });
+        
+        if (bucketError) {
+          console.error('Bucket creation error:', bucketError);
+          throw bucketError;
+        }
+      }
+
       // Upload to Supabase Storage
       const fileName = `og-image-${Date.now()}.${file.type.split('/')[1]}`;
+      console.log('Uploading file:', fileName);
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('website-assets')
         .upload(fileName, file, {
@@ -62,12 +84,19 @@ export const WebsiteMetadataManager: React.FC = () => {
           upsert: true,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('Upload successful:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('website-assets')
         .getPublicUrl(fileName);
+
+      console.log('Public URL:', publicUrl);
 
       // Update database
       const { error: updateError } = await supabase
@@ -78,7 +107,10 @@ export const WebsiteMetadataManager: React.FC = () => {
         })
         .eq('id', '00000000-0000-0000-0000-000000000001');
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw updateError;
+      }
 
       setCurrentImageUrl(publicUrl);
       toast({
@@ -90,11 +122,15 @@ export const WebsiteMetadataManager: React.FC = () => {
       console.error('Upload error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to upload image',
+        description: error.message || 'Failed to upload image',
         variant: 'destructive',
       });
     } finally {
       setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
