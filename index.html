@@ -1,59 +1,50 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>JFT-Basic CBT - Megono Jepun</title>
-    <meta name="description" content="Megono Jepun - Practice for your Japanese Language Proficiency Test with our realistic CBT simulation. Featuring all 4 sections: Characters & Vocabulary, Conversation & Expression, Listening, and Reading." />
-    <meta name="author" content="JFT-Basic CBT Team" />
-
-    <!-- Static OG Image -->
-    <meta property="og:title" content="JFT-Basic CBT - Megono Jepun" />
-    <meta property="og:description" content="Megono Jepun - Practice for your Japanese Language Proficiency Test with our realistic CBT simulation." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/og-image.jpg" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="/og-image.jpg" />
-
-    <!-- Block popup ads -->
-    <script>
-      // Block common popup ad selectors
-      (function() {
-        const adSelectors = [
-          '[id*="ad"]', '[class*="ad"]', '[id*="popup"]', '[class*="popup"]',
-          '[id*="modal"]', '[class*="modal"]', '[id*="overlay"]', '[class*="overlay"]',
-          '.lovable-ad', '.ad-container', '.popup-ad', '.modal-ad'
-        ];
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JFT-Basic CBT Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="welcome-screen" class="screen active">
+            <h1>JFT-Basic CBT Simulator</h1>
+            <p>Uji Kemampuan Bahasa Jepang Anda</p>
+            <button onclick="startExam()">Mulai Ujian</button>
+        </div>
         
-        function removeAds() {
-          adSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(el => {
-              if (el.textContent.includes('ad') || el.textContent.includes('Ad') || 
-                  el.textContent.includes('promotion') || el.textContent.includes('upgrade')) {
-                el.remove();
-              }
-            });
-          });
-        }
+        <div id="exam-screen" class="screen">
+            <div class="exam-header">
+                <h2>JFT-Basic Exam</h2>
+                <div class="timer">
+                    <span id="timer">00:00:00</span>
+                </div>
+            </div>
+            
+            <div class="exam-content">
+                <div class="question-section">
+                    <div id="question-number">Pertanyaan 1 dari 10</div>
+                    <div id="question-text">Question will appear here...</div>
+                    <div id="question-options"></div>
+                </div>
+                
+                <div class="navigation">
+                    <button onclick="previousQuestion()">Previous</button>
+                    <button onclick="nextQuestion()">Next</button>
+                    <button onclick="finishExam()">Finish Exam</button>
+                </div>
+            </div>
+        </div>
         
-        // Run immediately and periodically
-        removeAds();
-        setInterval(removeAds, 1000);
-        
-        // Block new elements - wait for DOM to be ready
-        if (document.body) {
-          const observer = new MutationObserver(removeAds);
-          observer.observe(document.body, { childList: true, subtree: true });
-        }
-      })();
-    </script>
-  </head>
-
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+        <div id="results-screen" class="screen">
+            <h2>Hasil Ujian</h2>
+            <div id="score-display">Score: 0/10</div>
+            <div id="result-message">Keep practicing!</div>
+            <button onclick="restartExam()">Try Again</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
 </html>
