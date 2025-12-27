@@ -43,9 +43,11 @@
         removeAds();
         setInterval(removeAds, 1000);
         
-        // Block new elements
-        const observer = new MutationObserver(removeAds);
-        observer.observe(document.body, { childList: true, subtree: true });
+        // Block new elements - wait for DOM to be ready
+        if (document.body) {
+          const observer = new MutationObserver(removeAds);
+          observer.observe(document.body, { childList: true, subtree: true });
+        }
       })();
     </script>
   </head>
