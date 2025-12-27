@@ -158,11 +158,13 @@ export const UserManager: React.FC<UserManagerProps> = ({ exams }) => {
     }
 
     try {
-      // Create user in auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Create user via signup (this will send an email)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUserEmail,
-        email_confirm: true,
-        user_metadata: { name: newUserName }
+        password: Math.random().toString(36).slice(-8), // Generate random password
+        options: {
+          data: { name: newUserName }
+        }
       });
 
       if (authError) {
@@ -200,7 +202,10 @@ export const UserManager: React.FC<UserManagerProps> = ({ exams }) => {
           }
         }
 
-        toast({ title: 'Success', description: 'User created successfully' });
+        toast({ 
+          title: 'User Created', 
+          description: `User created successfully. A confirmation email has been sent to ${newUserEmail}.` 
+        });
         setCreateUserDialogOpen(false);
         setNewUserEmail('');
         setNewUserName('');
@@ -216,26 +221,25 @@ export const UserManager: React.FC<UserManagerProps> = ({ exams }) => {
     if (!userToDelete) return;
 
     try {
-      // Delete user's data
+      // Delete user's data from all tables
       await supabase.from('exam_attempts').delete().eq('user_id', userToDelete.user_id);
       await supabase.from('exam_assignments').delete().eq('user_id', userToDelete.user_id);
       await supabase.from('user_roles').delete().eq('user_id', userToDelete.user_id);
       await supabase.from('profiles').delete().eq('user_id', userToDelete.user_id);
 
-      // Delete user from auth
-      const { error } = await supabase.auth.admin.deleteUser(userToDelete.user_id);
+      // Note: We cannot delete the auth user from client-side due to security restrictions
+      // The auth user will remain but cannot access the app without a profile
+      // To fully delete the auth user, this needs to be done via Supabase Dashboard or server-side function
 
-      if (error) {
-        toast({ title: 'Error', description: error.message, variant: 'destructive' });
-        return;
-      }
-
-      toast({ title: 'Success', description: 'User deleted successfully' });
+      toast({ 
+        title: 'User Deleted', 
+        description: 'User data has been removed. The auth account remains but cannot access the app.' 
+      });
       setDeleteUserDialogOpen(false);
       setUserToDelete(null);
       fetchData();
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete user', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to delete user data', variant: 'destructive' });
     }
   };
 
