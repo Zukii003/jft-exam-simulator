@@ -11,21 +11,26 @@ import { Exam } from '@/types/exam';
 import PoweredByFooter from '@/components/PoweredByFooter';
 
 const Dashboard: React.FC = () => {
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin, loading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [exams, setExams] = useState<Exam[]>([]);
-  const [loading, setLoading] = useState(true);
   const [attempts, setAttempts] = useState<Record<string, boolean>>({});
   const [assignments, setAssignments] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       navigate('/auth');
       return;
     }
-    fetchExams();
-  }, [user, navigate]);
+    if (user) {
+      fetchExams();
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">{t('loading')}</div>;
+  }
 
   const fetchExams = async () => {
     const { data: examData } = await supabase.from('exams').select('*');
@@ -60,7 +65,6 @@ const Dashboard: React.FC = () => {
         setAttempts(attemptMap);
       }
     }
-    setLoading(false);
   };
 
   const handleStartExam = (examId: string) => {
@@ -71,10 +75,6 @@ const Dashboard: React.FC = () => {
     await signOut();
     navigate('/auth');
   };
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">{t('loading')}</div>;
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
