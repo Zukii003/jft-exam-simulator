@@ -97,6 +97,7 @@ const Dashboard: React.FC = () => {
             <LogOut className="h-4 w-4" /> {t('logout')}
           </Button>
         </div>
+      </div>
       </header>
 
       <main className="container py-8 flex-1">
