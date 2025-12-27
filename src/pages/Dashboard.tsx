@@ -83,7 +83,7 @@ const Dashboard: React.FC = () => {
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <BookOpen className="h-5 w-5 text-primary-foreground" />
           </div>
-          <h1 className="text-xl font-semibold">JFT-Basic CBT (Uji Coba)</h1>
+          <h1 className="text-xl font-semibold">JFT-Basic CBT (Early Access)</h1>
         </div>
         <div className="flex items-center gap-3">
           <LanguageToggle />
