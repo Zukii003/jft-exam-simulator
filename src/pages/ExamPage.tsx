@@ -205,79 +205,28 @@ const ExamPage: React.FC = () => {
         .select('*')
         .eq('exam_id', examId)
         .eq('user_id', user!.id)
-        .eq('status', 'in_progress')
         .maybeSingle();
 
       if (existingAttempt) {
         // Resume existing attempt
         setAttemptId((existingAttempt as any).id);
-
-        // Keep exam time running across tab changes/reloads by deriving from started_at
-        startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date((existingAttempt as any).started_at).getTime();
+        startedAtMsRef.current = new Date((existingAttempt as any).started_at).getTime();
         saveStartTimeToLocalStorage(startedAtMsRef.current);
-        const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
-        const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
-
-        // Restore answers/progress
-        const restoredAnswers = (existingAttempt as any).answers_json as Record<string, string>;
-        const restoredSection = (existingAttempt as any).current_section;
-        const restoredSectionQuestions = (questionsData || [])
-          .filter((q: any) => q.section_number === restoredSection)
-          .sort((a: any, b: any) => (a.question_order ?? 0) - (b.question_order ?? 0));
-
-        // Best-effort: restore the current question index to the first unanswered in the current section
-        const firstUnansweredIdx = restoredSectionQuestions.findIndex(
-          (q: any) => !restoredAnswers?.[q.id]
-        );
-        const restoredIndex = firstUnansweredIdx === -1 ? 0 : firstUnansweredIdx;
-
-        // Get state from localStorage if exists
-        const localState = loadStateFromLocalStorage();
-
-        setState(prev => ({
-          ...prev,
-          currentSection: restoredSection,
-          currentQuestionIndex: localState?.currentQuestionIndex ?? restoredIndex,
-          answers: { ...restoredAnswers, ...localState?.answers },
-          audioPlayCount: { ...(existingAttempt as any).audio_play_json, ...localState?.audioPlayCount },
-          sectionFinished: { ...(existingAttempt as any).section_finished_json, ...localState?.sectionFinished },
-          sectionTimes: { ...(existingAttempt as any).section_times_json, ...localState?.sectionTimes },
-          flaggedQuestions: [...((existingAttempt as any).flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
-          timeRemaining: derivedTimeRemaining,
-        }));
+        setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
       } else {
-        // Create new attempt
+        // Create new attempt with upsert to avoid conflicts
         const { data: newAttempt, error: attemptError } = await supabase
           .from('exam_attempts' as any)
-          .insert({
+          .upsert({
             exam_id: examId,
             user_id: user!.id,
+            status: 'in_progress',
           })
           .select()
           .single();
 
         if (attemptError) {
           console.error('Attempt creation error:', attemptError);
-          // If 409 conflict, try to get existing attempt
-          if (attemptError.code === '409' || attemptError.message.includes('duplicate')) {
-            const { data: retryAttempt } = await supabase
-              .from('exam_attempts' as any)
-              .select('*')
-              .eq('exam_id', examId)
-              .eq('user_id', user!.id)
-              .eq('status', 'in_progress')
-              .maybeSingle();
-            
-            if (retryAttempt) {
-              setAttemptId((retryAttempt as any).id);
-              startedAtMsRef.current = new Date((retryAttempt as any).started_at).getTime();
-              saveStartTimeToLocalStorage(startedAtMsRef.current);
-              setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
-              setContentLoading(false);
-              return;
-            }
-          }
-          
           toast({ title: t('error'), description: 'Failed to start exam', variant: 'destructive' });
           navigate('/dashboard');
           return;
@@ -286,8 +235,6 @@ const ExamPage: React.FC = () => {
         setAttemptId((newAttempt as any).id);
         startedAtMsRef.current = new Date((newAttempt as any).started_at).getTime();
         saveStartTimeToLocalStorage(startedAtMsRef.current);
-
-        // New attempt starts with full duration
         setState(prev => ({ ...prev, timeRemaining: EXAM_DURATION_SECONDS }));
       }
 
