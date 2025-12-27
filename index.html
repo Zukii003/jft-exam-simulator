@@ -12,8 +12,153 @@
         <div id="welcome-screen" class="screen active">
             <h1>JFT-Basic CBT Simulator</h1>
             <p>Uji Kemampuan Bahasa Jepang Anda</p>
+            <div class="exam-info">
+                <h3>Struktur Ujian:</h3>
+                <div class="sections-overview">
+                    <div class="section-item">
+                        <span class="section-number">Section 1</span>
+                        <span class="section-title">Vocabulary & Grammar</span>
+                        <span class="section-questions">10 soal</span>
+                    </div>
+                    <div class="section-item">
+                        <span class="section-number">Section 2</span>
+                        <span class="section-title">Reading Comprehension</span>
+                        <span class="section-questions">10 soal</span>
+                    </div>
+                    <div class="section-item">
+                        <span class="section-number">Section 3</span>
+                        <span class="section-title">Listening Comprehension</span>
+                        <span class="section-questions">10 soal</span>
+                    </div>
+                    <div class="section-item">
+                        <span class="section-number">Section 4</span>
+                        <span class="section-title">Conversation</span>
+                        <span class="section-questions">10 soal</span>
+                    </div>
+                </div>
+                <p class="timer-info">Total waktu: 60 menit</p>
+            </div>
             <button onclick="startExam()">Mulai Ujian</button>
         </div>
         
         <!-- Exam Screen -->
-                                    
+        <div id="exam-screen" class="screen">
+            <div class="exam-header">
+                <div class="exam-info">
+                    <h2>JFT-Basic CBT</h2>
+                    <div class="section-progress">
+                        <span id="current-section-name">Section 1: Vocabulary & Grammar</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="section-progress"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="timer-container">
+                    <div class="timer" id="timer">60:00</div>
+                    <div class="section-timer" id="section-timer">15:00</div>
+                </div>
+            </div>
+            
+            <div class="section-tabs">
+                <button class="section-tab active" data-section="1" onclick="switchToSection(1)">
+                    <span class="tab-number">1</span>
+                    <span class="tab-title">Vocabulary</span>
+                    <span class="tab-status" id="tab-1-status"></span>
+                </button>
+                <button class="section-tab" data-section="2" onclick="switchToSection(2)">
+                    <span class="tab-number">2</span>
+                    <span class="tab-title">Reading</span>
+                    <span class="tab-status" id="tab-2-status"></span>
+                </button>
+                <button class="section-tab" data-section="3" onclick="switchToSection(3)">
+                    <span class="tab-number">3</span>
+                    <span class="tab-title">Listening</span>
+                    <span class="tab-status" id="tab-3-status"></span>
+                </button>
+                <button class="section-tab" data-section="4" onclick="switchToSection(4)">
+                    <span class="tab-number">4</span>
+                    <span class="tab-title">Conversation</span>
+                    <span class="tab-status" id="tab-4-status"></span>
+                </button>
+            </div>
+            
+            <div class="question-section">
+                <div id="question-header">
+                    <span id="question-number">Pertanyaan 1 dari 10</span>
+                    <span id="section-question-count">Section 1 - Question 1/10</span>
+                </div>
+                <div id="question-text">Question text here</div>
+                <div id="question-media"></div>
+                <div id="question-options">
+                    <!-- Options will be generated dynamically -->
+                </div>
+            </div>
+            
+            <div class="navigation">
+                <div class="nav-left">
+                    <button id="prev-btn" onclick="previousQuestion()" disabled>Previous</button>
+                    <button id="next-btn" onclick="nextQuestion()">Next</button>
+                </div>
+                <div class="nav-center">
+                    <span id="question-progress">1 / 10</span>
+                </div>
+                <div class="nav-right">
+                    <button id="finish-section-btn" onclick="finishSection()" style="display:none;">Finish Section</button>
+                    <button id="submit-exam-btn" onclick="submitExam()" style="display:none;">Submit Exam</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section Complete Modal -->
+        <div id="section-complete-modal" class="modal">
+            <div class="modal-content">
+                <h3>Section Complete!</h3>
+                <p>You have completed <span id="completed-section-name">Section 1</span></p>
+                <p>Questions answered: <span id="section-answered-count">0</span>/10</p>
+                <div class="modal-actions">
+                    <button onclick="continueToNextSection()">Continue to Next Section</button>
+                    <button onclick="reviewSection()">Review Section</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Screen -->
+        <div id="results-screen" class="screen">
+            <h2>Exam Results</h2>
+            <div class="score-summary">
+                <div id="score-display">Score: 0/40</div>
+                <div id="percentage-display">0%</div>
+            </div>
+            
+            <div class="section-scores">
+                <h3>Section Scores:</h3>
+                <div class="section-score-item">
+                    <span class="section-name">Section 1: Vocabulary & Grammar</span>
+                    <span class="section-score" id="score-section-1">0/10</span>
+                </div>
+                <div class="section-score-item">
+                    <span class="section-name">Section 2: Reading Comprehension</span>
+                    <span class="section-score" id="score-section-2">0/10</span>
+                </div>
+                <div class="section-score-item">
+                    <span class="section-name">Section 3: Listening Comprehension</span>
+                    <span class="section-score" id="score-section-3">0/10</span>
+                </div>
+                <div class="section-score-item">
+                    <span class="section-name">Section 4: Conversation</span>
+                    <span class="section-score" id="score-section-4">0/10</span>
+                </div>
+            </div>
+            
+            <div id="result-message"></div>
+            
+            <div class="result-actions">
+                <button onclick="reviewAnswers()">Review Answers</button>
+                <button onclick="restartExam()">Restart Exam</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
