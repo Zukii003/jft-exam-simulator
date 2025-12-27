@@ -18,20 +18,6 @@ const Dashboard: React.FC = () => {
   const [attempts, setAttempts] = useState<Record<string, boolean>>({});
   const [assignments, setAssignments] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-      return;
-    }
-    if (user) {
-      fetchExams();
-    }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">{t('loading')}</div>;
-  }
-
   const fetchExams = async () => {
     const { data: examData } = await supabase.from('exams').select('*');
     if (examData) {
@@ -66,6 +52,20 @@ const Dashboard: React.FC = () => {
       }
     }
   };
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+      return;
+    }
+    if (user) {
+      fetchExams();
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">{t('loading')}</div>;
+  }
 
   const handleStartExam = (examId: string) => {
     navigate(`/exam/${examId}`);
