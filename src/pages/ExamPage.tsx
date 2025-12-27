@@ -131,16 +131,16 @@ const ExamPage: React.FC = () => {
     try {
       // Fetch user profile
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('profiles' as any)
         .select('name')
-        .eq('user_id', user!.id)
+        .eq('id', user!.id)
         .single();
       
-      if (profile) setUserName(profile.name);
+      if (profile) setUserName((profile as any).name);
 
       // Fetch exam
       const { data: examData, error: examError } = await supabase
-        .from('exams')
+        .from('exams' as any)
         .select('*')
         .eq('id', examId)
         .single();
@@ -152,15 +152,15 @@ const ExamPage: React.FC = () => {
       }
 
       const typedExam: Exam = {
-        ...examData,
-        sections_json: examData.sections_json as unknown as Section[],
-        language_options: examData.language_options as unknown as string[],
+        ...(examData as any),
+        sections_json: (examData as any).sections_json as unknown as Section[],
+        language_options: (examData as any).language_options as unknown as string[],
       };
       setExam(typedExam);
 
       // Fetch questions from secure view (hides correct_answer from non-admins)
       const { data: questionsData } = await supabase
-        .from('questions_public')
+        .from('questions' as any)
         .select('*')
         .eq('exam_id', examId)
         .order('section_number')
@@ -169,20 +169,20 @@ const ExamPage: React.FC = () => {
       if (questionsData) {
         // Process questions and generate signed URLs for assets
         const processedQuestions = await Promise.all(
-          questionsData.map(async (q) => {
+          (questionsData as any[]).map(async (q: any) => {
             let imageUrl = q.image_url;
             let audioUrl = q.audio_url;
 
             // Generate signed URLs for assets (valid for 3 hours - covers exam duration)
             if (imageUrl && !imageUrl.startsWith('http')) {
               const { data } = await supabase.storage
-                .from('exam-assets')
+                .from('exam-assets' as any)
                 .createSignedUrl(imageUrl, 10800); // 3 hours
               imageUrl = data?.signedUrl || imageUrl;
             }
             if (audioUrl && !audioUrl.startsWith('http')) {
               const { data } = await supabase.storage
-                .from('exam-assets')
+                .from('exam-assets' as any)
                 .createSignedUrl(audioUrl, 10800); // 3 hours
               audioUrl = data?.signedUrl || audioUrl;
             }
@@ -201,7 +201,7 @@ const ExamPage: React.FC = () => {
 
       // Check for existing attempt
       const { data: existingAttempt } = await supabase
-        .from('exam_attempts')
+        .from('exam_attempts' as any)
         .select('*')
         .eq('exam_id', examId)
         .eq('user_id', user!.id)
@@ -209,10 +209,10 @@ const ExamPage: React.FC = () => {
 
       if (existingAttempt) {
         // If attempt is already submitted, create a new attempt
-        if (existingAttempt.submitted_at) {
+        if ((existingAttempt as any).submitted_at) {
           // Create new attempt
           const { data: newAttempt, error: attemptError } = await supabase
-            .from('exam_attempts')
+            .from('exam_attempts' as any)
             .insert({
               exam_id: examId,
               user_id: user!.id,
@@ -226,8 +226,8 @@ const ExamPage: React.FC = () => {
             return;
           }
 
-          setAttemptId(newAttempt.id);
-          startedAtMsRef.current = new Date(newAttempt.started_at).getTime();
+          setAttemptId((newAttempt as any).id);
+          startedAtMsRef.current = new Date((newAttempt as any).started_at).getTime();
           saveStartTimeToLocalStorage(startedAtMsRef.current);
 
           // New attempt starts with full duration and from section 1
@@ -244,17 +244,17 @@ const ExamPage: React.FC = () => {
           }));
         } else {
           // Resume incomplete attempt
-          setAttemptId(existingAttempt.id);
+          setAttemptId((existingAttempt as any).id);
 
           // Keep exam time running across tab changes/reloads by deriving from started_at
-          startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date(existingAttempt.started_at).getTime();
+          startedAtMsRef.current = loadStartTimeFromLocalStorage() || new Date((existingAttempt as any).started_at).getTime();
           saveStartTimeToLocalStorage(startedAtMsRef.current);
           const elapsedSeconds = Math.floor((Date.now() - startedAtMsRef.current) / 1000);
           const derivedTimeRemaining = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
 
           // Restore answers/progress
-          const restoredAnswers = existingAttempt.answers_json as Record<string, string>;
-          const restoredSection = existingAttempt.current_section;
+          const restoredAnswers = (existingAttempt as any).answers_json as Record<string, string>;
+          const restoredSection = (existingAttempt as any).current_section;
           const restoredSectionQuestions = (questionsData || [])
             .filter((q: any) => q.section_number === restoredSection)
             .sort((a: any, b: any) => (a.question_order ?? 0) - (b.question_order ?? 0));
@@ -273,17 +273,17 @@ const ExamPage: React.FC = () => {
             currentSection: restoredSection,
             currentQuestionIndex: localState?.currentQuestionIndex ?? restoredIndex,
             answers: { ...restoredAnswers, ...localState?.answers },
-            audioPlayCount: { ...existingAttempt.audio_play_json, ...localState?.audioPlayCount },
-            sectionFinished: { ...existingAttempt.section_finished_json, ...localState?.sectionFinished },
-            sectionTimes: { ...existingAttempt.section_times_json, ...localState?.sectionTimes },
-            flaggedQuestions: [...(existingAttempt.flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
+            audioPlayCount: { ...(existingAttempt as any).audio_play_json, ...localState?.audioPlayCount },
+            sectionFinished: { ...(existingAttempt as any).section_finished_json, ...localState?.sectionFinished },
+            sectionTimes: { ...(existingAttempt as any).section_times_json, ...localState?.sectionTimes },
+            flaggedQuestions: [...((existingAttempt as any).flagged_questions_json as string[]), ...(localState?.flaggedQuestions || [])],
             timeRemaining: derivedTimeRemaining,
           }));
         }
       } else {
         // Create new attempt
         const { data: newAttempt, error: attemptError } = await supabase
-          .from('exam_attempts')
+          .from('exam_attempts' as any)
           .insert({
             exam_id: examId,
             user_id: user!.id,
@@ -297,8 +297,8 @@ const ExamPage: React.FC = () => {
           return;
         }
 
-        setAttemptId(newAttempt.id);
-        startedAtMsRef.current = new Date(newAttempt.started_at).getTime();
+        setAttemptId((newAttempt as any).id);
+        startedAtMsRef.current = new Date((newAttempt as any).started_at).getTime();
         saveStartTimeToLocalStorage(startedAtMsRef.current);
 
         // New attempt starts with full duration
